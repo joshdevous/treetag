@@ -1,12 +1,13 @@
 import { betterAuth } from 'better-auth';
 import { mongodbAdapter } from 'better-auth/adapters/mongodb';
 import { MongoClient } from 'mongodb';
-import { env } from '$env/dynamic/private';
+import { DATABASE_URL, BETTER_AUTH_SECRET, APP_URL } from '$env/static/private';
 
-const client = new MongoClient(env.DATABASE_URL!);
+const client = new MongoClient(DATABASE_URL);
 
 export const auth = betterAuth({
-	baseURL: env.APP_URL ?? 'http://localhost:5173',
+	baseURL: APP_URL ?? 'http://localhost:5173',
+	secret: BETTER_AUTH_SECRET,
 	database: mongodbAdapter(client.db('treetag')),
 	emailAndPassword: {
 		enabled: true,
@@ -28,7 +29,7 @@ export const auth = betterAuth({
 			}
 		}
 	},
-	trustedOrigins: [env.APP_URL ?? 'http://localhost:5173']
+	trustedOrigins: [APP_URL ?? 'http://localhost:5173']
 });
 
 export type Auth = typeof auth;

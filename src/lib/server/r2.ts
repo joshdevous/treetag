@@ -1,13 +1,19 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { env } from '$env/dynamic/private';
+import {
+	R2_ACCOUNT_ID,
+	R2_ACCESS_KEY_ID,
+	R2_SECRET_ACCESS_KEY,
+	R2_BUCKET_NAME,
+	R2_PUBLIC_URL
+} from '$env/static/private';
 import crypto from 'crypto';
 
 const s3 = new S3Client({
 	region: 'auto',
-	endpoint: `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+	endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
 	credentials: {
-		accessKeyId: env.R2_ACCESS_KEY_ID!,
-		secretAccessKey: env.R2_SECRET_ACCESS_KEY!
+		accessKeyId: R2_ACCESS_KEY_ID,
+		secretAccessKey: R2_SECRET_ACCESS_KEY
 	}
 });
 
@@ -31,7 +37,7 @@ export async function uploadPhoto(
 
 	await s3.send(
 		new PutObjectCommand({
-			Bucket: env.R2_BUCKET_NAME,
+			Bucket: R2_BUCKET_NAME,
 			Key: key,
 			Body: buffer,
 			ContentType: file.type
@@ -39,7 +45,7 @@ export async function uploadPhoto(
 	);
 
 	return {
-		url: `${env.R2_PUBLIC_URL}/${key}`,
+		url: `${R2_PUBLIC_URL}/${key}`,
 		key
 	};
 }
@@ -47,7 +53,7 @@ export async function uploadPhoto(
 export async function deletePhoto(key: string): Promise<void> {
 	await s3.send(
 		new DeleteObjectCommand({
-			Bucket: env.R2_BUCKET_NAME,
+			Bucket: R2_BUCKET_NAME,
 			Key: key
 		})
 	);

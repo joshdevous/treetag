@@ -1,10 +1,10 @@
 import mongoose from 'mongoose';
-import { env } from '$env/dynamic/private';
+import { DATABASE_URL } from '$env/static/private';
 
 let isConnected = false;
 
 export async function connectDB(): Promise<void> {
 	if (isConnected) return;
-	await mongoose.connect(env.DATABASE_URL!, { dbName: 'treetag' });
+	await mongoose.connect(DATABASE_URL, { dbName: 'treetag' });
 	isConnected = true;
 }
