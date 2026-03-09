@@ -1,0 +1,13 @@
+networks:
+  proxiable:
+    name: proxiable
+    external: true
+
+services:
+  treetag:
+    container_name: treetag
+    image: treetag:latest
+    env_file:
+      - .env
+    networks:
+      - proxiable
