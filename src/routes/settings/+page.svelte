@@ -7,20 +7,18 @@
 		Eye,
 		EyeOff,
 		Shield,
-		Check,
-		AlertCircle,
 		Camera,
 		Image,
 		Save,
 		Trash2,
 		LoaderCircle
 	} from 'lucide-svelte';
+	import { toast } from 'svelte-sonner';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { Separator } from '$lib/components/ui/separator';
 	import * as Tabs from '$lib/components/ui/tabs';
-	import * as Alert from '$lib/components/ui/alert';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 
 	let { form } = $props();
@@ -77,6 +75,11 @@
 	$effect(() => {
 		if (form?.tab) activeTab = form.tab as string;
 	});
+
+	$effect(() => {
+		if (form?.success) toast.success(form.success as string);
+		if (form?.error) toast.error(form.error as string);
+	});
 </script>
 
 <svelte:head>
@@ -98,20 +101,6 @@
 				<Shield size={14} /> Security
 			</Tabs.Trigger>
 		</Tabs.List>
-
-		<!-- Feedback -->
-		{#if form?.success}
-			<Alert.Root class="mt-4 rounded-[10px] bg-green-50 border-green-200">
-				<Check size={15} />
-				<Alert.Description class="text-[13px] text-green-700">{form.success}</Alert.Description>
-			</Alert.Root>
-		{/if}
-		{#if form?.error}
-			<Alert.Root variant="destructive" class="mt-4 rounded-[10px] bg-red-50 border-red-200">
-				<AlertCircle size={15} />
-				<Alert.Description class="text-[13px] text-red-600">{form.error}</Alert.Description>
-			</Alert.Root>
-		{/if}
 
 		<!-- Profile tab -->
 		<Tabs.Content value="profile">

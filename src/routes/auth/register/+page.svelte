@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { signUp } from '$lib/auth-client';
 	import { goto } from '$app/navigation';
-	import { User, AtSign, Mail, Lock, Eye, EyeOff, ArrowRight, CircleCheck, Loader2, AlertCircle } from 'lucide-svelte';
+	import { User, AtSign, Mail, Lock, Eye, EyeOff, ArrowRight, CircleCheck, Loader2 } from 'lucide-svelte';
 	import { Checkbox } from '$lib/components/ui/checkbox';
-	import * as Alert from '$lib/components/ui/alert';
+	import { toast } from 'svelte-sonner';
 
 	let name = $state('');
 	let username = $state('');
@@ -11,7 +11,6 @@
 	let password = $state('');
 	let confirmPassword = $state('');
 	let termsAccepted = $state(false);
-	let error = $state('');
 	let loading = $state(false);
 	let showPassword = $state(false);
 	let showConfirmPassword = $state(false);
@@ -30,19 +29,18 @@
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
 		if (password !== confirmPassword) {
-			error = 'Passwords do not match.';
+			toast.error('Passwords do not match.');
 			return;
 		}
 		if (!termsAccepted) {
-			error = 'You must agree to the Terms of Service and Privacy Policy.';
+			toast.error('You must agree to the Terms of Service and Privacy Policy.');
 			return;
 		}
 		loading = true;
-		error = '';
 
 		const { error: err } = await signUp.email({ name, username, email, password });
 		if (err) {
-			error = err.message ?? 'Registration failed. Please try again.';
+			toast.error(err.message ?? 'Registration failed. Please try again.');
 			loading = false;
 		} else {
 			goto('/', { invalidateAll: true });
@@ -56,13 +54,6 @@
 
 <h1 class="auth-heading">Create your account</h1>
 <p class="auth-subtitle">Start your journey as a Tree Guardian today.</p>
-
-{#if error}
-	<Alert.Root variant="destructive" class="mb-4 rounded-[10px] bg-red-50 border-red-200">
-		<AlertCircle size={15} />
-		<Alert.Description class="text-sm text-red-600">{error}</Alert.Description>
-	</Alert.Root>
-{/if}
 
 <form onsubmit={handleSubmit}>
 	<!-- Full Name -->

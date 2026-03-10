@@ -1,12 +1,11 @@
 <script lang="ts">
 	import { signIn } from '$lib/auth-client';
 	import { goto } from '$app/navigation';
-	import { User, Lock, Eye, EyeOff, ArrowRight, Loader2, AlertCircle } from 'lucide-svelte';
-	import * as Alert from '$lib/components/ui/alert';
+	import { User, Lock, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-svelte';
+	import { toast } from 'svelte-sonner';
 
 	let identifier = $state('');
 	let password = $state('');
-	let error = $state('');
 	let loading = $state(false);
 	let showPassword = $state(false);
 	let identifierFocused = $state(false);
@@ -15,14 +14,13 @@
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
 		loading = true;
-		error = '';
 
 		const isEmail = identifier.includes('@');
 		const { error: err } = isEmail
 			? await signIn.email({ email: identifier, password })
 			: await signIn.username({ username: identifier, password });
 		if (err) {
-			error = err.message ?? 'Login failed. Please try again.';
+			toast.error(err.message ?? 'Login failed. Please try again.');
 			loading = false;
 		} else {
 			goto('/', { invalidateAll: true });
@@ -36,13 +34,6 @@
 
 <h1 class="auth-heading">Log in to Treetag</h1>
 <p class="auth-subtitle">Enter your details to access your trees and observations.</p>
-
-{#if error}
-	<Alert.Root variant="destructive" class="mb-4 rounded-[10px] bg-red-50 border-red-200">
-		<AlertCircle size={15} />
-		<Alert.Description class="text-sm text-red-600">{error}</Alert.Description>
-	</Alert.Root>
-{/if}
 
 <form onsubmit={handleSubmit}>
 	<!-- Email or Username -->

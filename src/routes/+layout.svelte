@@ -7,6 +7,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { Separator } from '$lib/components/ui/separator';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
+	import { Toaster } from 'svelte-sonner';
 
 	let { children, data } = $props();
 	let dropdownOpen = $state(false);
@@ -34,9 +35,11 @@
 </script>
 
 {#if $page.url.pathname.startsWith('/auth/')}
+	<Toaster richColors position="top-center" />
 	{@render children()}
 {:else}
 	<div class="flex min-h-screen flex-col">
+		<Toaster richColors position="top-center" />
 		<header class="sticky top-0 z-50 border-b border-stone-200/60 bg-white/70 backdrop-blur-md">
 			<nav class="mx-auto flex h-14 max-w-7xl items-center justify-between px-6">
 				<a href="/" class="flex items-center gap-2.5">
@@ -150,7 +153,7 @@
 					</span>
 				</div>
 				<div class="flex items-center gap-4">
-					<a href="/legal" class="text-[12.5px] text-stone-400 transition-colors hover:text-stone-600">Legal</a>
+					<a href="/legal" class="text-[12.5px] text-stone-400 transition-colors hover:text-stone-600">Legal & Privacy</a>
 				</div>
 			</div>
 		</footer>
