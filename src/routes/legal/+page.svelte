@@ -57,9 +57,9 @@
 <style>
 	.legal-index {
 		font-family: 'DM Sans', system-ui, sans-serif;
-		max-width: 680px;
+		max-width: 80rem;
 		margin: 0 auto;
-		padding: 48px 32px 80px;
+		padding: 48px 24px 80px;
 	}
 
 	.legal-index-heading {

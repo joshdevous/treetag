@@ -49,9 +49,9 @@
 	}
 
 	.legal-content {
-		max-width: 680px;
+		max-width: 80rem;
 		margin: 0 auto;
-		padding: 48px 32px 80px;
+		padding: 48px 24px 80px;
 	}
 
 	.legal-nav {
@@ -78,7 +78,7 @@
 	}
 
 	.legal-inner {
-		max-width: 600px;
+		max-width: 100%;
 	}
 
 	.legal-heading {
