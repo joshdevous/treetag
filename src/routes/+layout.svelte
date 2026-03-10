@@ -71,7 +71,7 @@
 							{link.label}
 						</a>
 					{/each}
-					{#if data.user?.role === 'admin'}
+					{#if data.user}
 						<a
 							href="/trees/new"
 							class="rounded-md px-3.5 py-1.5 text-[13px] font-medium text-stone-400 transition-colors hover:text-stone-700"
@@ -164,7 +164,7 @@
 								{link.label}
 							</a>
 						{/each}
-						{#if data.user?.role === 'admin'}
+						{#if data.user}
 							<a
 								href="/trees/new"
 								onclick={() => mobileMenuOpen = false}
