@@ -28,6 +28,7 @@ const treeSchema = new Schema(
 		tags: [String],
 		features: [String],
 		description: String,
+		status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
 		iNaturalistId: String,
 		createdBy: { type: String, required: true } // better-auth user ID
 	},
