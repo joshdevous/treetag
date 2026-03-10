@@ -121,11 +121,11 @@
 	<div class="relative overflow-hidden rounded-2xl border border-stone-200 bg-white">
 		<!-- Top gradient banner -->
 		{#if pUser.banner}
-			<div class="h-48">
+			<div class="aspect-[6/1] w-full">
 				<img src={pUser.banner} alt="Banner" class="h-full w-full object-cover" />
 			</div>
 		{:else}
-			<div class="h-48 bg-gradient-to-br from-green-600/90 via-emerald-500/80 to-teal-400/70"></div>
+			<div class="aspect-[6/1] w-full bg-gradient-to-br from-green-600/90 via-emerald-500/80 to-teal-400/70"></div>
 		{/if}
 
 		<div class="px-6 pb-6">
@@ -207,16 +207,16 @@
 				amber: { border: 'border-amber-200/60', bg: 'bg-amber-50/40', num: 'text-amber-800', icon: 'text-amber-600/70', label: 'text-amber-700/60' }
 			}}
 			{@const colors = colorMap[stat.color as keyof typeof colorMap]}
-			<div class="rounded-xl border {colors.border} {colors.bg} backdrop-blur-sm px-4 py-3.5 text-center">
+			<div class="rounded-xl border {colors.border} {colors.bg} backdrop-blur-sm px-3 py-3.5 text-center sm:px-4">
 				<div
-					class="text-2xl font-bold {colors.num}"
+					class="text-xl font-bold sm:text-2xl {colors.num}"
 					style="font-family: 'Space Mono', monospace;"
 				>
 					{stat.value}
 				</div>
-				<div class="mt-1.5 flex items-center justify-center gap-1.5 {colors.label}">
+				<div class="mt-1.5 flex flex-col items-center gap-0.5 sm:flex-row sm:justify-center sm:gap-1.5 {colors.label}">
 					<span class="shrink-0"><Icon size={14} strokeWidth={2} /></span>
-					<span class="text-[10px] font-bold uppercase tracking-wider">{stat.label}</span>
+					<span class="text-[9px] font-bold uppercase tracking-wider sm:text-[10px]">{stat.label}</span>
 				</div>
 			</div>
 		{/each}
