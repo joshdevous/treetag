@@ -12,7 +12,9 @@
 		Image,
 		Save,
 		Trash2,
-		LoaderCircle
+		LoaderCircle,
+		CircleCheck,
+		CircleX
 	} from 'lucide-svelte';
 	import { toast } from 'svelte-sonner';
 	import { Button } from '$lib/components/ui/button';
@@ -50,6 +52,29 @@
 	let currentPassword = $state('');
 	let newPassword = $state('');
 	let confirmPassword = $state('');
+
+	let usernameAvailable = $state<boolean | null>(null);
+	let usernameChecking = $state(false);
+	let usernameCheckTimeout: ReturnType<typeof setTimeout>;
+
+	$effect(() => {
+		const val = profileUsername.trim();
+		usernameAvailable = null;
+		clearTimeout(usernameCheckTimeout);
+		if (val.length < 3 || val === (user?.username ?? '')) return;
+		if (!/^[a-zA-Z0-9_]+$/.test(val)) return;
+		usernameChecking = true;
+		usernameCheckTimeout = setTimeout(async () => {
+			try {
+				const res = await fetch(`/api/username/check?username=${encodeURIComponent(val)}&excludeUserId=${encodeURIComponent(user?.id ?? '')}`);
+				const data = await res.json();
+				if (profileUsername.trim() === val) {
+					usernameAvailable = data.available;
+				}
+			} catch {}
+			usernameChecking = false;
+		}, 400);
+	});
 
 	const profileDirty = $derived(
 		profileName !== (user?.name ?? '') ||
@@ -193,8 +218,6 @@
 			}}
 			class="mt-6 space-y-5"
 		>
-			<h3 class="text-[14px] font-semibold text-stone-700">Profile Picture & Banner</h3>
-
 			<!-- Banner -->
 			<div>
 				<Label class="mb-1.5 text-[13px] font-medium text-stone-600">Banner</Label>
@@ -297,7 +320,19 @@
 						bind:value={profileUsername}
 						class="w-full rounded-r-[10px] bg-transparent px-1.5 py-2.5 text-[14px] text-stone-800 outline-none"
 					/>
+				{#if usernameChecking}
+					<span class="pr-3 text-stone-400 flex"><LoaderCircle size={14} class="animate-spin" /></span>
+				{:else if usernameAvailable === true}
+					<span class="pr-3 text-green-600 flex"><CircleCheck size={14} /></span>
+				{:else if usernameAvailable === false}
+					<span class="pr-3 text-red-500 flex"><CircleX size={14} /></span>
+				{/if}
 				</div>
+				{#if usernameAvailable === false}
+					<p class="mt-1 text-[12px] text-red-500">This username is already taken.</p>
+				{:else if usernameAvailable === true}
+					<p class="mt-1 text-[12px] text-green-600">Username is available!</p>
+				{/if}
 			</div>
 
 			{#if removeAvatar}<input type="hidden" name="removeAvatar" value="true" />{/if}

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { signUp } from '$lib/auth-client';
 	import { goto } from '$app/navigation';
-	import { User, AtSign, Mail, Lock, Eye, EyeOff, ArrowRight, CircleCheck, Loader2 } from 'lucide-svelte';
+	import { User, AtSign, Mail, Lock, Eye, EyeOff, ArrowRight, CircleCheck, CircleX, Loader2 } from 'lucide-svelte';
 	import { Checkbox } from '$lib/components/ui/checkbox';
 	import { toast } from 'svelte-sonner';
 
@@ -19,6 +19,29 @@
 	let emailFocused = $state(false);
 	let passwordFocused = $state(false);
 	let confirmFocused = $state(false);
+
+	let usernameAvailable = $state<boolean | null>(null);
+	let usernameChecking = $state(false);
+	let usernameCheckTimeout: ReturnType<typeof setTimeout>;
+
+	$effect(() => {
+		const val = username.trim();
+		usernameAvailable = null;
+		clearTimeout(usernameCheckTimeout);
+		if (val.length < 3) return;
+		if (!/^[a-zA-Z0-9_]+$/.test(val)) return;
+		usernameChecking = true;
+		usernameCheckTimeout = setTimeout(async () => {
+			try {
+				const res = await fetch(`/api/username/check?username=${encodeURIComponent(val)}`);
+				const data = await res.json();
+				if (username.trim() === val) {
+					usernameAvailable = data.available;
+				}
+			} catch {}
+			usernameChecking = false;
+		}, 400);
+	});
 
 	const passwordChecks = $derived([
 		{ label: 'At least 8 characters', met: password.length >= 8 },
@@ -92,7 +115,19 @@
 				onblur={() => (usernameFocused = false)}
 				class="auth-input"
 			/>
+			{#if usernameChecking}
+				<span class="auth-input-icon"><Loader2 size={14} class="animate-spin" /></span>
+			{:else if usernameAvailable === true}
+				<span class="text-green-600 flex"><CircleCheck size={14} /></span>
+			{:else if usernameAvailable === false}
+				<span class="text-red-500 flex"><CircleX size={14} /></span>
+			{/if}
 		</div>
+		{#if usernameAvailable === false}
+			<p class="mt-1 text-[12px] text-red-500">This username is already taken.</p>
+		{:else if usernameAvailable === true}
+			<p class="mt-1 text-[12px] text-green-600">Username is available!</p>
+		{/if}
 	</div>
 
 	<!-- Email -->

@@ -38,12 +38,25 @@ export const actions: Actions = {
 		}
 
 		try {
+			// Check username uniqueness before updating
+			const db = client.db('treetag');
+			const existing = await db.collection('user').findOne(
+				{
+					username: { $regex: new RegExp(`^${username.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+					_id: { $ne: new ObjectId(session.user.id) }
+				},
+				{ projection: { _id: 1 } }
+			);
+			if (existing) {
+				return { error: 'That username is already taken.', tab: 'profile' };
+			}
+
 			await auth.api.updateUser({
 				headers: request.headers,
 				body: { name, username }
 			});
 
-// Handle image uploads and removals
+        // Handle image uploads and removals
 		const hasAvatar = avatarFile && avatarFile.size > 0;
 		const hasBanner = bannerFile && bannerFile.size > 0;
 		const removeAvatarFlag = form.get('removeAvatar') === 'true';
