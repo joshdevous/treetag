@@ -22,7 +22,6 @@
 	import { parseDate } from '@internationalized/date';
 	import { env } from '$env/dynamic/public';
 	import { toast } from 'svelte-sonner';
-	import { TREE_SPECIES_SUGGESTIONS } from '$lib/species';
 	import { cn } from '$lib/utils';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
@@ -61,6 +60,8 @@
 	// Species combobox state
 	let speciesOpen = $state(false);
 	let speciesTriggerRef = $state<HTMLButtonElement | null>(null);
+	let plantedByOpen = $state(false);
+	let plantedByTriggerRef = $state<HTMLButtonElement | null>(null);
 
 	// Tag chips
 	let tags = $state<string[]>([]);
@@ -77,16 +78,29 @@
 	const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 	const ADDRESS_LOOKUP_API_URL = env.PUBLIC_ADDRESS_LOOKUP_API_URL ?? '';
 	const ADDRESS_LOOKUP_API_KEY = env.PUBLIC_ADDRESS_LOOKUP_API_KEY ?? '';
+	const availableSpecies = $derived(data.speciesSuggestions ?? []);
+	const plantedBySuggestions = $derived(data.plantedBySuggestions ?? []);
 
 	const speciesSuggestions = $derived.by(() => {
 		const current = species.trim().toLowerCase();
-		if (!current) return TREE_SPECIES_SUGGESTIONS.slice(0, 60);
-		return TREE_SPECIES_SUGGESTIONS.filter((s) => s.toLowerCase().includes(current)).slice(0, 60);
+		if (!current) return availableSpecies.slice(0, 60);
+		return availableSpecies.filter((s) => s.toLowerCase().includes(current)).slice(0, 60);
+	});
+
+	const plantedByMatches = $derived.by(() => {
+		const current = plantedBy.trim().toLowerCase();
+		if (!current) return plantedBySuggestions.slice(0, 60);
+		return plantedBySuggestions.filter((s: string) => s.toLowerCase().includes(current)).slice(0, 60);
 	});
 
 	function closeSpeciesPopover() {
 		speciesOpen = false;
 		speciesTriggerRef?.focus();
+	}
+
+	function closePlantedByPopover() {
+		plantedByOpen = false;
+		plantedByTriggerRef?.focus();
 	}
 
 	function handleSpeciesInputKeydown(event: KeyboardEvent) {
@@ -100,6 +114,19 @@
 			event.preventDefault();
 			event.stopPropagation();
 			closeSpeciesPopover();
+		}
+	}
+
+	function handlePlantedByInputKeydown(event: KeyboardEvent) {
+		if (event.key !== 'Enter') return;
+
+		const typed = plantedBy.trim();
+		if (!typed) return;
+
+		if (plantedByMatches.length === 0) {
+			event.preventDefault();
+			event.stopPropagation();
+			closePlantedByPopover();
 		}
 	}
 
@@ -236,6 +263,31 @@
 		address = value;
 	}
 
+	function buildLocalAddressFromNominatim(addr: Record<string, unknown>): string {
+		const localParts = [
+			addr.road,
+			addr.neighbourhood,
+			addr.suburb,
+			addr.hamlet,
+			addr.village,
+			addr.town,
+			addr.city,
+			addr.city_district,
+			addr.state_district,
+			addr.county
+		].filter((v): v is string => typeof v === 'string' && v.trim().length > 0);
+
+		const seen = new Set<string>();
+		const unique = localParts.filter((part) => {
+			const key = part.toLowerCase();
+			if (seen.has(key)) return false;
+			seen.add(key);
+			return true;
+		});
+
+		return unique.join(', ');
+	}
+
 	async function reverseLookupAddress(lat: string, lng: string) {
 		try {
 			const url = new URL('https://nominatim.openstreetmap.org/reverse');
@@ -252,12 +304,7 @@
 			const payload = await res.json();
 			const addr = payload?.address ?? {};
 			const guessedPostcode = typeof addr.postcode === 'string' ? addr.postcode : '';
-			const guessedAddress =
-				typeof payload?.display_name === 'string'
-					? payload.display_name
-					: [addr.road, addr.suburb, addr.city || addr.town || addr.village, addr.county]
-						.filter(Boolean)
-						.join(', ');
+			const guessedAddress = buildLocalAddressFromNominatim(addr);
 
 			if (guessedPostcode) postcode = guessedPostcode;
 			if (guessedAddress) {
@@ -401,6 +448,7 @@
 	>
 		<input type="hidden" name="species" value={species} />
 		<input type="hidden" name="plantedDate" value={plantedDate} />
+		<input type="hidden" name="plantedBy" value={plantedBy} />
 		<input type="hidden" name="tags" value={tags.join(', ')} />
 		<input type="hidden" name="features" value={features.join(', ')} />
 		<input type="hidden" name="postcode" value={postcode} />
@@ -474,7 +522,6 @@
 							</Command.Root>
 						</Popover.Content>
 					</Popover.Root>
-					<p class="mt-1 text-[12px] text-stone-400">Search from suggestions or type your own species text directly.</p>
 					{#if fieldError('species')}
 						<p class="mt-1 text-[12px] text-red-500">{fieldError('species')}</p>
 					{/if}
@@ -584,15 +631,45 @@
 				</div>
 				<div>
 					<Label for="plantedBy" class="mb-1.5 text-[13px] font-medium text-stone-600">Planted By</Label>
-					<Input
-						id="plantedBy"
-						name="plantedBy"
-						type="text"
-						maxlength={100}
-						placeholder="e.g. Charlton Kings Council"
-						bind:value={plantedBy}
-						class="h-auto rounded-[10px] border-stone-200 bg-white px-3.5 py-2.5 text-[14px] text-stone-800 placeholder:text-stone-300 focus-visible:border-green-400 focus-visible:ring-green-100"
-					/>
+					<Popover.Root bind:open={plantedByOpen}>
+						<Popover.Trigger bind:ref={plantedByTriggerRef}>
+							{#snippet child({ props })}
+								<Button
+									{...props}
+									id="plantedBy"
+									variant="outline"
+									role="combobox"
+									aria-expanded={plantedByOpen}
+									class="h-auto w-full justify-between rounded-[10px] border-stone-200 bg-white px-3.5 py-2.5 text-[14px] font-normal hover:bg-white focus-visible:border-green-400 focus-visible:ring-2 focus-visible:ring-green-100 {plantedByOpen ? 'border-green-400 ring-2 ring-green-100' : ''} {plantedBy ? 'text-stone-800' : 'text-stone-300'}"
+								>
+									{plantedBy || 'Select or type planter...'}
+									<ChevronsUpDown size={14} class="opacity-50" />
+								</Button>
+							{/snippet}
+						</Popover.Trigger>
+						<Popover.Content class="w-(--bits-popover-anchor-width) p-0" align="start">
+							<Command.Root>
+								<Command.Input bind:value={plantedBy} onkeydown={handlePlantedByInputKeydown} placeholder="Search or type who planted it..." />
+								<Command.List>
+									<Command.Empty>No matches found. Keep typing to use custom text.</Command.Empty>
+									<Command.Group>
+										{#each plantedByMatches as suggestion (suggestion)}
+											<Command.Item
+												value={suggestion}
+												onSelect={() => {
+													plantedBy = suggestion;
+													closePlantedByPopover();
+												}}
+											>
+												<Check class={cn('me-2 size-4', plantedBy !== suggestion && 'text-transparent')} />
+												{suggestion}
+											</Command.Item>
+										{/each}
+									</Command.Group>
+								</Command.List>
+							</Command.Root>
+						</Popover.Content>
+					</Popover.Root>
 				</div>
 			</div>
 		</section>
@@ -675,9 +752,6 @@
 							{/each}
 						</div>
 					</div>
-				{/if}
-				{#if selectedAddressOption}
-					<p class="mt-1 text-[12px] text-green-700">Selected: {selectedAddressOption}</p>
 				{/if}
 				{#if fieldError('address')}
 					<p class="mt-1 text-[12px] text-red-500">{fieldError('address')}</p>

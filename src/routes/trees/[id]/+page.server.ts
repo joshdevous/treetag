@@ -4,6 +4,7 @@ import { connectDB } from '$lib/server/db';
 import { TreeModel } from '$lib/server/db/models/tree';
 import { ObservationModel } from '$lib/server/db/models/observation';
 import { PhotoModel } from '$lib/server/db/models/photo';
+import { recordApprovedTreeLovValues } from '$lib/server/lov';
 import { MongoClient } from 'mongodb';
 import { DATABASE_URL, APP_URL } from '$env/static/private';
 import type { PageServerLoad, Actions } from './$types';
@@ -120,6 +121,10 @@ export const actions: Actions = {
 
 		tree.status = 'approved';
 		await tree.save();
+		await recordApprovedTreeLovValues({
+			species: tree.species,
+			plantedBy: tree.plantedBy ?? null
+		});
 
 		return { success: 'Tree approved and now visible to the public.' };
 	},

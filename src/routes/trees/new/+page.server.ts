@@ -4,6 +4,7 @@ import { connectDB } from '$lib/server/db';
 import { TreeModel } from '$lib/server/db/models/tree';
 import { PhotoModel } from '$lib/server/db/models/photo';
 import { uploadPhoto } from '$lib/server/r2';
+import { getLovSuggestions, recordApprovedTreeLovValues } from '$lib/server/lov';
 import crypto from 'crypto';
 import type { PageServerLoad, Actions } from './$types';
 
@@ -40,7 +41,14 @@ export const load: PageServerLoad = async ({ request }) => {
 	const session = await auth.api.getSession({ headers: request.headers });
 	if (!session?.user) throw redirect(303, '/auth/login');
 	const isAdmin = (session.user as any).role === 'admin';
-	return { isAdmin };
+
+	await connectDB();
+	const [speciesSuggestions, plantedBySuggestions] = await Promise.all([
+		getLovSuggestions('species', 200),
+		getLovSuggestions('plantedBy', 100)
+	]);
+
+	return { isAdmin, speciesSuggestions, plantedBySuggestions };
 };
 
 export const actions: Actions = {
@@ -183,6 +191,13 @@ export const actions: Actions = {
 					{ _id: { $in: photoIds } },
 					{ $set: { tree: tree._id } }
 				);
+			}
+
+			if ((tree as any).status === 'approved') {
+				await recordApprovedTreeLovValues({
+					species: tree.species,
+					plantedBy: tree.plantedBy ?? null
+				});
 			}
 
 			throw redirect(303, `/trees/${tree._id}`);
