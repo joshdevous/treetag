@@ -66,7 +66,15 @@ export const auth = betterAuth({
 		}
 	},
 	plugins: [username()],
-	trustedOrigins: [APP_URL ?? 'http://localhost:5173']
+	trustedOrigins: [APP_URL ?? 'http://localhost:5173'],
+	rateLimit: {
+		window: 60,
+		max: 30,
+		customRules: {
+			'/send-verification-email': { window: 60, max: 1 },
+			'/forget-password': { window: 60, max: 1 }
+		}
+	}
 });
 
 export type Auth = typeof auth;

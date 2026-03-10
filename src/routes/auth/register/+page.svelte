@@ -66,7 +66,7 @@
 			toast.error(err.message ?? 'Registration failed. Please try again.');
 			loading = false;
 		} else {
-			goto('/', { invalidateAll: true });
+			window.location.href = `/auth/verify-email?email=${encodeURIComponent(email)}&from=signup`;
 		}
 	}
 </script>

@@ -7,6 +7,17 @@
 	let loading = $state(false);
 	let sent = $state(false);
 	let emailFocused = $state(false);
+	let cooldown = $state(0);
+	let cooldownInterval: ReturnType<typeof setInterval>;
+
+	function startCooldown() {
+		cooldown = 60;
+		clearInterval(cooldownInterval);
+		cooldownInterval = setInterval(() => {
+			cooldown--;
+			if (cooldown <= 0) clearInterval(cooldownInterval);
+		}, 1000);
+	}
 
 	async function handleSubmit(e: Event) {
 		e.preventDefault();
@@ -21,6 +32,7 @@
 			toast.error(error.message ?? 'Something went wrong. Please try again.');
 		} else {
 			sent = true;
+			startCooldown();
 		}
 
 		loading = false;
@@ -42,9 +54,19 @@
 		<p class="auth-subtitle">
 			We've sent a password reset link to <strong>{email}</strong>. It may take a minute to arrive.
 		</p>
-		<a href="/auth/login" class="text-sm font-medium text-green-600 hover:underline">
-			Back to login
-		</a>
+		<button
+			type="button"
+			onclick={() => { sent = false; handleSubmit(new Event('submit')); }}
+			disabled={loading || cooldown > 0}
+			class="text-sm font-medium text-green-600 hover:underline disabled:opacity-50 disabled:no-underline"
+		>
+			{cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend email'}
+		</button>
+		<div class="mt-2">
+			<a href="/auth/login" class="text-sm font-medium text-stone-400 hover:underline">
+				Back to login
+			</a>
+		</div>
 	</div>
 {:else}
 	<h1 class="auth-heading">Forgot your password?</h1>

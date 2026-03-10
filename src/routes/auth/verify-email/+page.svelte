@@ -7,12 +7,33 @@
 	let loading = $state(false);
 	let resent = $state(false);
 	let email = $state('');
+	let cooldown = $state(0);
+	let cooldownInterval: ReturnType<typeof setInterval>;
+	let cooldownStarted = false;
 
 	const emailParam = $derived($page.url.searchParams.get('email') ?? '');
+	const fromSignup = $derived($page.url.searchParams.get('from') === 'signup');
 
 	$effect(() => {
 		email = emailParam;
 	});
+
+	$effect(() => {
+		if (fromSignup && !cooldownStarted) {
+			cooldownStarted = true;
+			startCooldown();
+		}
+		return () => clearInterval(cooldownInterval);
+	});
+
+	function startCooldown() {
+		cooldown = 60;
+		clearInterval(cooldownInterval);
+		cooldownInterval = setInterval(() => {
+			cooldown--;
+			if (cooldown <= 0) clearInterval(cooldownInterval);
+		}, 1000);
+	}
 
 	async function handleResend() {
 		if (!email) {
@@ -32,6 +53,7 @@
 		} else {
 			resent = true;
 			toast.success('Verification email sent!');
+			startCooldown();
 		}
 
 		loading = false;
@@ -83,10 +105,12 @@
 	<button
 		type="button"
 		onclick={handleResend}
-		disabled={loading}
+		disabled={loading || cooldown > 0}
 		class="auth-submit"
 	>
-		{#if resent}
+		{#if cooldown > 0}
+			Resend in {cooldown}s
+		{:else if resent}
 			Resend verification email
 		{:else}
 			{loading ? 'Sending' : 'Send verification email'}
