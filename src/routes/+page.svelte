@@ -114,20 +114,32 @@
 			a: 'Treetag is a community project for discovering, tagging, and caring for the trees of Charlton Kings. Each tree gets a QR code tag, making it easy to learn about and track the health of our local canopy.'
 		},
 		{
-			q: 'How do I adopt a tree?',
-			a: "Sign up for an account, explore the map to find a tree you'd like to care for, and click the Adopt button on its detail page. As a guardian, you'll receive notifications about your tree and earn points for regular check-ins."
-		},
-		{
-			q: 'What are observation points?',
-			a: 'You earn points each time you tag a tree, upload a photo, report a wildlife sighting, or complete a health check. Points reflect your contribution to the community and help you level up from Seedling to Ancient Oak.'
-		},
-		{
 			q: 'How do I scan a QR code?',
 			a: "Look for QR code tags on trees around Charlton Kings. Simply scan with your phone's camera or a QR reader app to instantly view the tree's profile, history, and observations."
 		},
 		{
+			q: 'How do I adopt a tree?',
+			a: "Create an account, explore the map or browse trees to find one you'd like to care for, and click the Adopt button on its page. Adopting a tree makes you its guardian and earns you 50 points straight away."
+		},
+		{
+			q: 'What kinds of observations can I make?',
+			a: 'You can tag a tree, upload photos, report wildlife sightings, submit health checks, flag signs of disease, or leave general notes. Each type contributes differently to the community record and earns you points.'
+		},
+		{
+			q: 'How does the points system work?',
+			a: 'Every interaction earns points — tagging a tree (5 pts), uploading a photo (10 pts), reporting wildlife (15 pts), health checks (20 pts), flagging disease (25 pts), leaving notes (5 pts), and adopting a tree (50 pts). You also get a daily bonus of 5 pts and a 30 pt reward for a 7-day streak.'
+		},
+		{
+			q: 'What are the guardian levels?',
+			a: 'As you earn points you progress through five levels: Seedling (0 pts), Sapling (50 pts), Trunk (200 pts), Canopy (500 pts), and Ancient Oak (1,000 pts). Each level unlocks a new badge on your profile.'
+		},
+		{
 			q: 'Can I register a new tree?',
-			a: 'Admins can register new trees through the app. If you know of a noteworthy tree that should be tracked, submit a suggestion and our team will add it to the map.'
+			a: 'Admins can register new trees through the app. If you know of a noteworthy tree that isn\'t tracked yet, get in touch and our team will add it to the map with a QR tag.'
+		},
+		{
+			q: 'Is Treetag free to use?',
+			a: 'Yes — Treetag is completely free. It\'s a community-driven project built to help residents engage with and protect the local tree canopy in Charlton Kings.'
 		}
 	];
 </script>
