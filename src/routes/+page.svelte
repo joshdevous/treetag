@@ -20,6 +20,7 @@
 		Leaf
 	} from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
+	import TreeMap from '$lib/components/TreeMap.svelte';
 
 	let { data } = $props();
 
@@ -136,7 +137,7 @@
 		},
 		{
 			q: 'Can I register a new tree?',
-			a: 'Admins can register new trees through the app. If you know of a noteworthy tree that isn\'t tracked yet, get in touch and our team will add it to the map with a QR tag.'
+			a: 'Yes! Any registered user can submit a tree to the database. Your submission will be reviewed by an admin before appearing publicly on the map. Just create an account, click Register a Tree, and fill in the details.'
 		},
 		{
 			q: 'Is Treetag free to use?',
@@ -345,6 +346,36 @@
 		{/if}
 	</div>
 </section>
+
+<!-- ============================================================ -->
+<!-- EXPLORE MAP                                                   -->
+<!-- ============================================================ -->
+{#if data.mapTrees.length > 0}
+<section
+	class="px-6 pb-10"
+	style="animation: fade-slide-up 0.8s cubic-bezier(0.16,1,0.3,1) 0.6s both"
+>
+	<div class="mx-auto max-w-7xl">
+		<div class="mb-4 flex items-center justify-between">
+			<div>
+				<h2 class="text-xl font-bold tracking-tight text-stone-900">Explore the Map</h2>
+				<p class="text-xs text-stone-400">Find trees near you in Charlton Kings</p>
+			</div>
+			<Button
+				href="/trees"
+				variant="outline"
+				class="rounded-lg border-stone-200 bg-white px-3.5 py-1.5 text-xs font-medium text-green-600 hover:border-green-600 h-auto"
+			>
+				Browse All <ChevronRight size={13} />
+			</Button>
+		</div>
+
+		{#if data.mapTrees.length > 0}
+			<TreeMap trees={data.mapTrees} height="420px" />
+		{/if}
+	</div>
+</section>
+{/if}
 
 <!-- ============================================================ -->
 <!-- COMMUNITY FEED                                                -->

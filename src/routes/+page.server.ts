@@ -11,18 +11,21 @@ export const load: PageServerLoad = async () => {
 	await connectDB();
 	const db = client.db('treetag');
 
-	const [treeCount, adoptedCount, guardianCount, observationCount, recentTrees, recentActivity] =
+	const approvedFilter = { status: { $in: ['approved', null] } };
+
+	const [treeCount, adoptedCount, guardianCount, observationCount, recentTrees, recentActivity, mapTrees] =
 		await Promise.all([
-			TreeModel.countDocuments(),
-			TreeModel.countDocuments({ adoptedBy: { $ne: null } }),
+			TreeModel.countDocuments(approvedFilter),
+			TreeModel.countDocuments({ ...approvedFilter, adoptedBy: { $ne: null } }),
 			db.collection('user').countDocuments(),
 			ObservationModel.countDocuments(),
-			TreeModel.find().sort({ updatedAt: -1 }).limit(6).lean(),
+			TreeModel.find(approvedFilter).sort({ updatedAt: -1 }).limit(6).lean(),
 			ObservationModel.find()
 				.sort({ createdAt: -1 })
 				.limit(6)
 				.populate('tree', 'name')
-				.lean()
+				.lean(),
+			TreeModel.find(approvedFilter, { name: 1, species: 1, location: 1, adoptedBy: 1 }).lean()
 		]);
 
 	const userIds = [...new Set(recentActivity.map((a) => a.userId))];
@@ -51,6 +54,16 @@ export const load: PageServerLoad = async () => {
 			adopted: t.adoptedBy != null,
 			location: t.location?.address ?? ''
 		})),
+		mapTrees: mapTrees
+			.filter((t) => t.location?.coordinates?.[0] && t.location?.coordinates?.[1])
+			.map((t) => ({
+				id: String(t._id),
+				name: t.name,
+				species: t.species,
+				lat: t.location.coordinates[1],
+				lng: t.location.coordinates[0],
+				adopted: t.adoptedBy != null
+			})),
 		activity: recentActivity.map((a) => {
 			const tree = a.tree as unknown as { name: string } | null;
 			return {
