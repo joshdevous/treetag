@@ -21,6 +21,7 @@
 		$page.url.pathname.startsWith('/auth/forgot-password') ||
 		$page.url.pathname.startsWith('/auth/reset-password')
 	);
+	const isVerifyEmail = $derived($page.url.pathname.startsWith('/auth/verify-email'));
 </script>
 
 <svelte:head>
@@ -106,11 +107,13 @@
 			</div>
 
 			<h2 class="panel-heading">
-				{isPasswordFlow ? 'Account Recovery' : isLogin ? 'Welcome back, Guardian' : 'Join the Guardians'}
+				{isVerifyEmail ? 'Almost There' : isPasswordFlow ? 'Account Recovery' : isLogin ? 'Welcome back, Guardian' : 'Join the Guardians'}
 			</h2>
 
 			<p class="panel-subtext">
-				{isPasswordFlow
+				{isVerifyEmail
+					? 'Just one more step — verify your email to start exploring and protecting the trees of Charlton Kings.'
+					: isPasswordFlow
 					? 'No worries — it happens to the best of us. We\'ll get you back to your trees in no time.'
 					: isLogin
 						? 'Your trees missed you. Log in to check on your canopy and see what the community has been up to.'
@@ -153,7 +156,9 @@
 			</a>
 
 			<div class="text-[13px] text-stone-400">
-				{#if isPasswordFlow}
+				{#if isVerifyEmail}
+					Already verified? <a href="/auth/login" class="text-green-600 font-semibold hover:underline">Log in</a>
+				{:else if isPasswordFlow}
 					Remember it? <a href="/auth/login" class="text-green-600 font-semibold hover:underline">Log in</a>
 				{:else if isLogin}
 					No account? <a href="/auth/register" class="text-green-600 font-semibold hover:underline">Sign up</a>

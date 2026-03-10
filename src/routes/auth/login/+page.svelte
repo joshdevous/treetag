@@ -20,7 +20,12 @@
 			? await signIn.email({ email: identifier, password })
 			: await signIn.username({ username: identifier, password });
 		if (err) {
-			toast.error(err.message ?? 'Login failed. Please try again.');
+			if (err.code === 'EMAIL_NOT_VERIFIED') {
+				const emailParam = isEmail ? identifier : '';
+				goto(`/auth/verify-email${emailParam ? `?email=${encodeURIComponent(emailParam)}` : ''}`);
+			} else {
+				toast.error(err.message ?? 'Login failed. Please try again.');
+			}
 			loading = false;
 		} else {
 			goto('/', { invalidateAll: true });
