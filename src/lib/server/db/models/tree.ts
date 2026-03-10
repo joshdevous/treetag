@@ -37,7 +37,6 @@ const treeSchema = new Schema(
 
 treeSchema.index({ location: '2dsphere' });
 treeSchema.index({ species: 1 });
-treeSchema.index({ qrCodeId: 1 }, { unique: true });
 
 export type Tree = InferSchemaType<typeof treeSchema>;
 const existingTreeModel = mongoose.models['Tree'] as mongoose.Model<Tree> | undefined;

@@ -16,11 +16,9 @@
 		ChevronsUpDown,
 		Check,
 		ChevronUp,
-		ChevronDown,
-		Search
+		ChevronDown
 	} from 'lucide-svelte';
 	import { parseDate } from '@internationalized/date';
-	import { env } from '$env/dynamic/public';
 	import { toast } from 'svelte-sonner';
 	import { cn } from '$lib/utils';
 	import { Button } from '$lib/components/ui/button';
@@ -54,14 +52,21 @@
 
 	let locating = $state(false);
 	let isFetchingAddresses = $state(false);
-	let addressOptions = $state<string[]>([]);
-	let selectedAddressOption = $state('');
+
+	type LookupAddressOption = {
+		id: string;
+		shortAddress: string;
+	};
+
+	let addressOptions = $state<LookupAddressOption[]>([]);
 
 	// Species combobox state
 	let speciesOpen = $state(false);
 	let speciesTriggerRef = $state<HTMLButtonElement | null>(null);
 	let plantedByOpen = $state(false);
 	let plantedByTriggerRef = $state<HTMLButtonElement | null>(null);
+	let addressOpen = $state(false);
+	let addressTriggerRef = $state<HTMLButtonElement | null>(null);
 
 	// Tag chips
 	let tags = $state<string[]>([]);
@@ -76,8 +81,6 @@
 
 	const MAX_PHOTO_SIZE = 10 * 1024 * 1024; // 10 MB
 	const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-	const ADDRESS_LOOKUP_API_URL = env.PUBLIC_ADDRESS_LOOKUP_API_URL ?? '';
-	const ADDRESS_LOOKUP_API_KEY = env.PUBLIC_ADDRESS_LOOKUP_API_KEY ?? '';
 	const availableSpecies = $derived(data.speciesSuggestions ?? []);
 	const plantedBySuggestions = $derived(data.plantedBySuggestions ?? []);
 
@@ -93,6 +96,12 @@
 		return plantedBySuggestions.filter((s: string) => s.toLowerCase().includes(current)).slice(0, 60);
 	});
 
+	const addressMatches = $derived.by(() => {
+		const current = address.trim().toLowerCase();
+		if (!current) return addressOptions.slice(0, 60);
+		return addressOptions.filter((o) => o.shortAddress.toLowerCase().includes(current)).slice(0, 60);
+	});
+
 	function closeSpeciesPopover() {
 		speciesOpen = false;
 		speciesTriggerRef?.focus();
@@ -101,6 +110,11 @@
 	function closePlantedByPopover() {
 		plantedByOpen = false;
 		plantedByTriggerRef?.focus();
+	}
+
+	function closeAddressPopover() {
+		addressOpen = false;
+		addressTriggerRef?.focus();
 	}
 
 	function handleSpeciesInputKeydown(event: KeyboardEvent) {
@@ -127,6 +141,18 @@
 			event.preventDefault();
 			event.stopPropagation();
 			closePlantedByPopover();
+		}
+	}
+
+	function handleAddressInputKeydown(event: KeyboardEvent) {
+		if (event.key !== 'Enter') return;
+		const typed = address.trim();
+		if (!typed) return;
+
+		if (addressMatches.length === 0) {
+			event.preventDefault();
+			event.stopPropagation();
+			closeAddressPopover();
 		}
 	}
 
@@ -183,65 +209,28 @@
 		if (field === 'trunkDiameter') trunkDiameter = formatted;
 	}
 
-	function normalizeAddressResult(item: unknown): string | null {
-		if (!item) return null;
-		if (typeof item === 'string') return item;
-		if (typeof item !== 'object') return null;
-
-		const obj = item as Record<string, unknown>;
-		const direct = obj.label || obj.address || obj.formatted || obj.formatted_address || obj.fullAddress || obj.display_name;
-		if (typeof direct === 'string' && direct.trim()) return direct;
-
-		const parts = [obj.line_1, obj.line_2, obj.line_3, obj.town, obj.city, obj.county, obj.postcode]
-			.filter((v) => typeof v === 'string' && v.trim()) as string[];
-		if (parts.length > 0) return parts.join(', ');
-
-		return null;
-	}
-
-	function extractAddressOptions(payload: unknown): string[] {
-		if (!payload) return [];
-		if (Array.isArray(payload)) {
-			return payload.map(normalizeAddressResult).filter((v): v is string => !!v);
-		}
-		if (typeof payload === 'object') {
-			const obj = payload as Record<string, unknown>;
-			const candidates = [obj.results, obj.addresses, obj.items, obj.data];
-			for (const candidate of candidates) {
-				if (Array.isArray(candidate)) {
-					return candidate.map(normalizeAddressResult).filter((v): v is string => !!v);
-				}
-			}
-			const single = normalizeAddressResult(obj);
-			return single ? [single] : [];
-		}
-		return [];
-	}
-
 	async function lookupAddresses(force = false) {
 		const cleanPostcode = postcode.trim();
 		if (!cleanPostcode) {
 			addressOptions = [];
 			return;
 		}
-		if (!ADDRESS_LOOKUP_API_URL) {
-			if (force) toast.error('Address lookup API is not configured yet.');
-			addressOptions = [];
-			return;
-		}
 
 		isFetchingAddresses = true;
 		try {
-			const url = new URL(ADDRESS_LOOKUP_API_URL);
-			url.searchParams.set('postcode', cleanPostcode);
-			if (ADDRESS_LOOKUP_API_KEY) {
-				url.searchParams.set('key', ADDRESS_LOOKUP_API_KEY);
-			}
-
-			const response = await fetch(url.toString());
+			const response = await fetch(`/api/address/find/${encodeURIComponent(cleanPostcode)}`);
 			if (!response.ok) throw new Error(`Lookup failed (${response.status})`);
-			const payload = await response.json();
-			addressOptions = extractAddressOptions(payload);
+			const payload = (await response.json()) as Array<Record<string, unknown>>;
+			addressOptions = Array.isArray(payload)
+				? payload
+					.map((item) => {
+						const id = typeof item.id === 'string' ? item.id : '';
+						const shortAddress = typeof item.shortAddress === 'string' ? item.shortAddress : '';
+						if (!id || !shortAddress) return null;
+						return { id, shortAddress };
+					})
+					.filter((item): item is LookupAddressOption => item !== null)
+				: [];
 			if (force && addressOptions.length === 0) {
 				toast.info('No addresses found for that postcode.');
 			}
@@ -258,9 +247,9 @@
 		postcodeDebounce = setTimeout(() => lookupAddresses(false), 450);
 	}
 
-	function applySelectedAddress(value: string) {
-		selectedAddressOption = value;
-		address = value;
+	function applySelectedAddress(option: LookupAddressOption) {
+		address = option.shortAddress;
+		closeAddressPopover();
 	}
 
 	function buildLocalAddressFromNominatim(addr: Record<string, unknown>): string {
@@ -306,10 +295,12 @@
 			const guessedPostcode = typeof addr.postcode === 'string' ? addr.postcode : '';
 			const guessedAddress = buildLocalAddressFromNominatim(addr);
 
-			if (guessedPostcode) postcode = guessedPostcode;
+			if (guessedPostcode) {
+				postcode = guessedPostcode;
+				void lookupAddresses(false);
+			}
 			if (guessedAddress) {
 				address = guessedAddress;
-				selectedAddressOption = guessedAddress;
 			}
 		} catch {
 			// Reverse lookup is best-effort only.
@@ -331,6 +322,7 @@
 		longitude = '-2.0498';
 		tags = ['heritage', 'mature', 'shady', 'landmark'];
 		features = ['wide canopy', 'buttress roots', 'carved initials', 'bird nesting site'];
+		void lookupAddresses(false);
 	}
 
 	function handlePhotoSelect(e: Event) {
@@ -449,6 +441,7 @@
 		<input type="hidden" name="species" value={species} />
 		<input type="hidden" name="plantedDate" value={plantedDate} />
 		<input type="hidden" name="plantedBy" value={plantedBy} />
+		<input type="hidden" name="address" value={address} />
 		<input type="hidden" name="tags" value={tags.join(', ')} />
 		<input type="hidden" name="features" value={features.join(', ')} />
 		<input type="hidden" name="postcode" value={postcode} />
@@ -683,33 +676,30 @@
 				Location
 			</div>
 
-			<div class="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+			<div class="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
 				<div>
 					<Label for="postcode" class="mb-1.5 text-[13px] font-medium text-stone-600">Postcode</Label>
-					<Input
-						id="postcode"
-						name="postcode_display"
-						type="text"
-						placeholder="e.g. GL53 8PQ"
-						bind:value={postcode}
-						oninput={handlePostcodeInput}
-						class="h-auto rounded-[10px] border-stone-200 bg-white px-3.5 py-2.5 text-[14px] text-stone-800 placeholder:text-stone-300 focus-visible:border-green-400 focus-visible:ring-green-100"
-					/>
+					<div class="relative">
+						<Input
+							id="postcode"
+							name="postcode_display"
+							type="text"
+							placeholder="e.g. GL53 8PQ"
+							bind:value={postcode}
+							oninput={handlePostcodeInput}
+							class="h-auto rounded-[10px] border-stone-200 bg-white px-3.5 py-2.5 pe-10 text-[14px] text-stone-800 placeholder:text-stone-300 focus-visible:border-green-400 focus-visible:ring-green-100"
+						/>
+						{#if postcode.trim()}
+							<span class="pointer-events-none absolute inset-y-0 right-3 inline-flex items-center text-[11px] font-medium text-stone-400">
+								{#if isFetchingAddresses}
+									<LoaderCircle size={14} class="animate-spin" />
+								{:else}
+									{addressOptions.length} results
+								{/if}
+							</span>
+						{/if}
+					</div>
 				</div>
-				<Button
-					type="button"
-					variant="outline"
-					onclick={() => lookupAddresses(true)}
-					disabled={isFetchingAddresses || !postcode.trim()}
-					class="h-auto rounded-[10px] border-stone-200 px-3.5 py-2.5 text-[13px] font-medium text-stone-600 hover:border-green-400 hover:bg-green-50 hover:text-green-700"
-				>
-					{#if isFetchingAddresses}
-						<LoaderCircle size={14} class="animate-spin" />
-					{:else}
-						<Search size={14} />
-					{/if}
-					Find Address
-				</Button>
 				<Button
 					type="button"
 					variant="outline"
@@ -728,31 +718,47 @@
 
 			<div>
 				<Label for="address" class="mb-1.5 text-[13px] font-medium text-stone-600">Address / Location Name</Label>
-				<Input
-					id="address"
-					name="address"
-					type="text"
-					maxlength={200}
-					placeholder="Start typing or choose from postcode suggestions"
-					bind:value={address}
-					class="h-auto rounded-[10px] border-stone-200 bg-white px-3.5 py-2.5 text-[14px] text-stone-800 placeholder:text-stone-300 focus-visible:border-green-400 focus-visible:ring-green-100"
-				/>
-				{#if addressOptions.length > 0}
-					<div class="mt-2 rounded-[10px] border border-stone-200 bg-white p-2">
-						<p class="mb-1 text-[11px] font-medium text-stone-500">Suggested addresses</p>
-						<div class="max-h-40 space-y-1 overflow-y-auto">
-							{#each addressOptions as option}
-								<button
-									type="button"
-									onclick={() => applySelectedAddress(option)}
-									class="w-full rounded-md px-2 py-1.5 text-left text-[12px] text-stone-700 transition-colors hover:bg-green-50 hover:text-green-700"
-								>
-									{option}
-								</button>
-							{/each}
-						</div>
-					</div>
-				{/if}
+				<Popover.Root bind:open={addressOpen}>
+					<Popover.Trigger bind:ref={addressTriggerRef}>
+						{#snippet child({ props })}
+							<Button
+								{...props}
+								id="address"
+								variant="outline"
+								role="combobox"
+								aria-expanded={addressOpen}
+								class="h-auto w-full justify-between rounded-[10px] border-stone-200 bg-white px-3.5 py-2.5 text-[14px] font-normal hover:bg-white focus-visible:border-green-400 focus-visible:ring-2 focus-visible:ring-green-100 {addressOpen ? 'border-green-400 ring-2 ring-green-100' : ''} {address ? 'text-stone-800' : 'text-stone-300'}"
+							>
+								{address || 'Start typing or choose from postcode suggestions'}
+								{#if isFetchingAddresses}
+									<LoaderCircle size={14} class="animate-spin opacity-60" />
+								{:else}
+									<ChevronsUpDown size={14} class="opacity-50" />
+								{/if}
+							</Button>
+						{/snippet}
+					</Popover.Trigger>
+					<Popover.Content class="w-(--bits-popover-anchor-width) p-0" align="start">
+						<Command.Root>
+							<Command.Input bind:value={address} onkeydown={handleAddressInputKeydown} placeholder="Search or type location name..." />
+							<Command.List>
+								<Command.Empty>No matches found. Keep typing to use custom text.</Command.Empty>
+								<Command.Group>
+									{#each addressMatches as option (option.id)}
+										<Command.Item
+											value={option.shortAddress}
+											onSelect={() => {
+												applySelectedAddress(option);
+											}}
+										>
+											<span class="truncate text-[12px] font-medium text-stone-700">{option.shortAddress}</span>
+										</Command.Item>
+									{/each}
+								</Command.Group>
+							</Command.List>
+						</Command.Root>
+					</Popover.Content>
+				</Popover.Root>
 				{#if fieldError('address')}
 					<p class="mt-1 text-[12px] text-red-500">{fieldError('address')}</p>
 				{/if}
