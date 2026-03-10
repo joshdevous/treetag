@@ -79,9 +79,9 @@
 <p class="auth-subtitle">Start your journey as a Tree Guardian today.</p>
 
 <form onsubmit={handleSubmit}>
-	<!-- Full Name -->
+	<!-- Display Name -->
 	<div class="mb-4">
-		<label for="name" class="auth-label">Full Name</label>
+		<label for="name" class="auth-label">Display Name</label>
 		<div class="auth-input-wrap" class:focused={nameFocused}>
 			<div class="auth-input-icon" class:active={nameFocused}><User size={16} /></div>
 			<input
