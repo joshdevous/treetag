@@ -19,6 +19,7 @@
 		AlertTriangle,
 		Leaf
 	} from 'lucide-svelte';
+	import { Button } from '$lib/components/ui/button';
 
 	let { data } = $props();
 
@@ -243,18 +244,19 @@
 		</p>
 
 		<div class="mb-12 flex flex-wrap justify-center gap-3">
-			<a
+			<Button
 				href="/trees"
-				class="inline-flex items-center gap-2 rounded-xl bg-green-700 px-7 py-3 text-sm font-semibold text-white shadow-lg shadow-green-900/20 transition-all hover:bg-green-800 hover:shadow-xl"
+				class="rounded-xl bg-green-700 px-7 py-3 text-sm font-semibold shadow-lg shadow-green-900/20 hover:bg-green-800 hover:shadow-xl h-auto"
 			>
 				<MapIcon size={16} /> Explore the Map
-			</a>
-			<a
+			</Button>
+			<Button
 				href="/scan"
-				class="inline-flex items-center gap-2 rounded-xl border border-white/50 bg-white/70 backdrop-blur-md px-7 py-3 text-sm font-semibold text-green-900 shadow-sm transition-all hover:bg-white/90"
+				variant="outline"
+				class="rounded-xl border-white/50 bg-white/70 backdrop-blur-md px-7 py-3 text-sm font-semibold text-green-900 shadow-sm hover:bg-white/90 h-auto"
 			>
 				<ScanLine size={16} /> Scan a QR Code
-			</a>
+			</Button>
 		</div>
 
 		<div class="grid grid-cols-2 gap-3 mx-auto w-full max-w-sm sm:max-w-lg sm:grid-cols-4">
@@ -295,12 +297,13 @@
 				<h2 class="text-xl font-bold tracking-tight text-stone-900">Recently Active Trees</h2>
 				<p class="text-xs text-stone-400">Trees with recent observations from the community</p>
 			</div>
-			<a
+			<Button
 				href="/trees"
-				class="inline-flex items-center gap-1 rounded-lg border border-stone-200 bg-white px-3.5 py-1.5 text-xs font-medium text-green-600 transition-colors hover:border-green-600"
+				variant="outline"
+				class="rounded-lg border-stone-200 bg-white px-3.5 py-1.5 text-xs font-medium text-green-600 hover:border-green-600 h-auto"
 			>
 				View All <ChevronRight size={13} />
-			</a>
+			</Button>
 		</div>
 
 		{#if data.recentTrees.length > 0}

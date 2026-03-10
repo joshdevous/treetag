@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { signUp } from '$lib/auth-client';
 	import { goto } from '$app/navigation';
-	import { User, AtSign, Mail, Lock, Eye, EyeOff, ArrowRight, CircleCheck, Loader2 } from 'lucide-svelte';
+	import { User, AtSign, Mail, Lock, Eye, EyeOff, ArrowRight, CircleCheck, Loader2, AlertCircle } from 'lucide-svelte';
 	import { Checkbox } from '$lib/components/ui/checkbox';
+	import * as Alert from '$lib/components/ui/alert';
 
 	let name = $state('');
 	let username = $state('');
@@ -57,7 +58,10 @@
 <p class="auth-subtitle">Start your journey as a Tree Guardian today.</p>
 
 {#if error}
-	<p class="mb-4 rounded-[10px] bg-red-50 border border-red-200 px-3.5 py-2.5 text-sm text-red-600">{error}</p>
+	<Alert.Root variant="destructive" class="mb-4 rounded-[10px] bg-red-50 border-red-200">
+		<AlertCircle size={15} />
+		<Alert.Description class="text-sm text-red-600">{error}</Alert.Description>
+	</Alert.Root>
 {/if}
 
 <form onsubmit={handleSubmit}>

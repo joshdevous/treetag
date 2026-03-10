@@ -4,6 +4,9 @@
 	import { signOut } from '$lib/auth-client';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { TreePine, User, Settings, LogOut, ChevronDown } from 'lucide-svelte';
+	import { Button } from '$lib/components/ui/button';
+	import { Separator } from '$lib/components/ui/separator';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 
 	let { children, data } = $props();
 	let dropdownOpen = $state(false);
@@ -28,16 +31,7 @@
 		await invalidateAll();
 		goto('/');
 	}
-
-	function handleClickOutside(e: MouseEvent) {
-		const target = e.target as HTMLElement;
-		if (!target.closest('.user-dropdown')) {
-			dropdownOpen = false;
-		}
-	}
 </script>
-
-<svelte:window onclick={handleClickOutside} />
 
 {#if $page.url.pathname.startsWith('/auth/')}
 	{@render children()}
@@ -84,11 +78,8 @@
 
 				<div class="flex items-center gap-3">
 					{#if data.user}
-						<div class="user-dropdown relative">
-							<button
-								onclick={() => (dropdownOpen = !dropdownOpen)}
-								class="flex cursor-pointer items-center gap-2 rounded-full py-1 pl-1 pr-2.5 transition-colors hover:bg-stone-100"
-							>
+						<DropdownMenu.Root bind:open={dropdownOpen}>
+							<DropdownMenu.Trigger class="flex cursor-pointer items-center gap-2 rounded-full py-1 pl-1 pr-2.5 transition-colors hover:bg-stone-100">
 								<div
 									class="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-green-600 to-emerald-500 text-[11px] font-bold text-white overflow-hidden"
 								>
@@ -107,59 +98,36 @@
 										? 'rotate-180'
 										: ''}"
 								/>
-							</button>
+							</DropdownMenu.Trigger>
 
-							{#if dropdownOpen}
-								<div
-									class="absolute right-0 top-full mt-1.5 w-52 rounded-xl border border-stone-200 bg-white py-1.5 shadow-lg shadow-stone-200/60"
-								>
-									<div class="border-b border-stone-100 px-3.5 pb-2.5 pt-2">
-										<p class="text-[13px] font-medium text-stone-800">{data.user.name}</p>
-										<p class="text-[12px] text-stone-400">@{data.user.username}</p>
-									</div>
-									<div class="py-1">
-										<a
-											href="/@{data.user.username}"
-											onclick={() => (dropdownOpen = false)}
-											class="flex cursor-pointer items-center gap-2.5 px-3.5 py-2 text-[13px] text-stone-600 transition-colors hover:bg-stone-50 hover:text-stone-900"
-										>
-											<User size={15} class="text-stone-400" />
-											Profile
-										</a>
-										<a
-											href="/settings"
-											onclick={() => (dropdownOpen = false)}
-											class="flex cursor-pointer items-center gap-2.5 px-3.5 py-2 text-[13px] text-stone-600 transition-colors hover:bg-stone-50 hover:text-stone-900"
-										>
-											<Settings size={15} class="text-stone-400" />
-											Settings
-										</a>
-									</div>
-									<div class="border-t border-stone-100 pt-1">
-										<button
-											onclick={handleSignOut}
-											class="flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2 text-[13px] text-red-600 transition-colors hover:bg-red-50"
-										>
-											<LogOut size={15} />
-											Log Out
-										</button>
-									</div>
-								</div>
-							{/if}
-						</div>
+							<DropdownMenu.Content align="end" class="w-52 rounded-xl shadow-lg shadow-stone-200/60">
+								<DropdownMenu.Label class="px-3.5 pb-2.5 pt-2">
+									<p class="text-[13px] font-medium text-stone-800">{data.user.name}</p>
+									<p class="text-[12px] font-normal text-stone-400">@{data.user.username}</p>
+								</DropdownMenu.Label>
+								<DropdownMenu.Separator />
+								<DropdownMenu.Item onclick={() => goto(`/@${data.user?.username}`)} class="gap-2.5 px-3.5 py-2 text-[13px] text-stone-600">
+									<User size={15} class="text-stone-400" />
+									Profile
+								</DropdownMenu.Item>
+								<DropdownMenu.Item onclick={() => goto('/settings')} class="gap-2.5 px-3.5 py-2 text-[13px] text-stone-600">
+									<Settings size={15} class="text-stone-400" />
+									Settings
+								</DropdownMenu.Item>
+								<DropdownMenu.Separator />
+								<DropdownMenu.Item variant="destructive" onclick={handleSignOut} class="gap-2.5 px-3.5 py-2 text-[13px]">
+									<LogOut size={15} />
+									Log Out
+								</DropdownMenu.Item>
+							</DropdownMenu.Content>
+						</DropdownMenu.Root>
 					{:else}
-						<a
-							href="/auth/login"
-							class="text-[13px] font-medium text-stone-500 transition-colors hover:text-stone-900"
-						>
+						<Button variant="ghost" href="/auth/login" class="text-[13px] font-medium text-stone-500 hover:text-stone-900 hover:bg-transparent h-auto px-0">
 							Log In
-						</a>
-						<a
-							href="/auth/register"
-							class="rounded-lg border border-green-600/30 px-4 py-1.5 text-[13px] font-semibold text-green-600 transition-colors hover:bg-green-50 hover:border-green-600/50"
-						>
+						</Button>
+						<Button variant="outline" href="/auth/register" class="rounded-lg border-green-600/30 px-4 py-1.5 text-[13px] font-semibold text-green-600 hover:bg-green-50 hover:border-green-600/50 h-auto">
 							Sign Up
-						</a>
+						</Button>
 					{/if}
 				</div>
 			</nav>

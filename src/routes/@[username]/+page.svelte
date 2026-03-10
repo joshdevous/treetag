@@ -19,6 +19,9 @@
 		Settings,
 		Sparkles
 	} from 'lucide-svelte';
+	import { Button } from '$lib/components/ui/button';
+	import { Badge } from '$lib/components/ui/badge';
+	import { Separator } from '$lib/components/ui/separator';
 
 	let { data } = $props();
 
@@ -146,29 +149,26 @@
 					<p class="text-[13px] text-stone-400">@{pUser.username}</p>
 				</div>
 				{#if data.isOwnProfile}
-					<a
-						href="/settings"
-						class="flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-1.5 text-[12px] font-medium text-stone-500 transition-colors hover:bg-stone-50 hover:text-stone-700"
-					>
+					<Button variant="outline" href="/settings" class="h-auto rounded-lg border-stone-200 px-3 py-1.5 text-[12px] font-medium text-stone-500 hover:bg-stone-50 hover:text-stone-700">
 						<Settings size={13} /> Edit Profile
-					</a>
+					</Button>
 				{/if}
 			</div>
 
 			<!-- Badges row -->
 			<div class="mt-4 flex flex-wrap items-center gap-2.5">
 				{#if pUser.role === 'admin'}
-					<span class="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-1 text-[12px] font-medium text-rose-500">
+					<Badge class="gap-1.5 rounded-full bg-rose-50 px-2.5 py-1 text-[12px] font-medium text-rose-500 hover:bg-rose-50">
 						<Shield size={12} /> Admin
-					</span>
+					</Badge>
 				{/if}
-				<span class="inline-flex items-center gap-1.5 rounded-full {lc.bg} px-2.5 py-1 text-[12px] font-medium {lc.text}">
+				<Badge class="gap-1.5 rounded-full {lc.bg} px-2.5 py-1 text-[12px] font-medium {lc.text} hover:{lc.bg}">
 					<LevelIcon size={12} /> {levelInfo.current.title}
-				</span>
-				<span class="inline-flex items-center gap-1.5 rounded-full bg-stone-50 px-2.5 py-1 text-[12px] text-stone-500">
+				</Badge>
+				<Badge variant="outline" class="gap-1.5 rounded-full border-none bg-stone-50 px-2.5 py-1 text-[12px] text-stone-500 hover:bg-stone-50">
 					<Calendar size={12} />
 					Joined {formatDate(pUser.createdAt)}
-				</span>
+				</Badge>
 			</div>
 
 			<!-- Level progress -->

@@ -14,12 +14,19 @@
 		Save,
 		Trash2
 	} from 'lucide-svelte';
+	import { Button } from '$lib/components/ui/button';
+	import { Input } from '$lib/components/ui/input';
+	import { Label } from '$lib/components/ui/label';
+	import { Separator } from '$lib/components/ui/separator';
+	import * as Tabs from '$lib/components/ui/tabs';
+	import * as Alert from '$lib/components/ui/alert';
+	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 
 	let { form } = $props();
 
 	const user = $derived($page.data.user);
 
-	let activeTab = $state<'profile' | 'security'>((form?.tab as 'profile' | 'security') ?? 'profile');
+	let activeTab = $state<string>((form?.tab as string) ?? 'profile');
 	let showCurrentPassword = $state(false);
 	let showNewPassword = $state(false);
 	let showConfirmPassword = $state(false);
@@ -27,8 +34,6 @@
 	let avatarPreview = $state<string | null>(null);
 	let bannerPreview = $state<string | null>(null);
 	let uploading = $state(false);
-	let bannerMenuOpen = $state(false);
-	let avatarMenuOpen = $state(false);
 
 	let bannerInput = $state<HTMLInputElement | null>(null);
 	let avatarInput = $state<HTMLInputElement | null>(null);
@@ -45,13 +50,11 @@
 	function handleAvatarSelect(e: Event) {
 		const file = (e.target as HTMLInputElement).files?.[0];
 		if (file) avatarPreview = URL.createObjectURL(file);
-		avatarMenuOpen = false;
 	}
 
 	function handleBannerSelect(e: Event) {
 		const file = (e.target as HTMLInputElement).files?.[0];
 		if (file) bannerPreview = URL.createObjectURL(file);
-		bannerMenuOpen = false;
 	}
 
 	function getInitials(name: string) {
@@ -59,11 +62,9 @@
 	}
 
 	$effect(() => {
-		if (form?.tab) activeTab = form.tab as 'profile' | 'security';
+		if (form?.tab) activeTab = form.tab as string;
 	});
 </script>
-
-<svelte:window onclick={() => { bannerMenuOpen = false; avatarMenuOpen = false; }} />
 
 <svelte:head>
 	<title>Settings — Treetag</title>
@@ -75,42 +76,33 @@
 	</h1>
 	<p class="mt-1 text-[14px] text-stone-400">Manage your account preferences.</p>
 
-	<!-- Tabs -->
-	<div class="mt-6 flex gap-1 border-b border-stone-200">
-		<button
-			onclick={() => (activeTab = 'profile')}
-			class="cursor-pointer border-b-2 px-4 pb-2.5 text-[13px] font-medium transition-colors {activeTab ===
-			'profile'
-				? 'border-green-600 text-green-600'
-				: 'border-transparent text-stone-400 hover:text-stone-600'}"
-		>
-			<span class="flex items-center gap-1.5"><User size={14} /> Profile</span>
-		</button>
-		<button
-			onclick={() => (activeTab = 'security')}
-			class="cursor-pointer border-b-2 px-4 pb-2.5 text-[13px] font-medium transition-colors {activeTab ===
-			'security'
-				? 'border-green-600 text-green-600'
-				: 'border-transparent text-stone-400 hover:text-stone-600'}"
-		>
-			<span class="flex items-center gap-1.5"><Shield size={14} /> Security</span>
-		</button>
-	</div>
+	<Tabs.Root bind:value={activeTab} class="mt-6">
+		<Tabs.List class="bg-transparent w-full justify-start gap-1 rounded-none border-b border-stone-200 p-0 h-auto">
+			<Tabs.Trigger value="profile" class="rounded-none border-b-2 border-transparent px-4 pb-2.5 pt-0 text-[13px] font-medium text-stone-400 hover:text-stone-600 data-[state=active]:border-green-600 data-[state=active]:text-green-600 data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+				<User size={14} /> Profile
+			</Tabs.Trigger>
+			<Tabs.Trigger value="security" class="rounded-none border-b-2 border-transparent px-4 pb-2.5 pt-0 text-[13px] font-medium text-stone-400 hover:text-stone-600 data-[state=active]:border-green-600 data-[state=active]:text-green-600 data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+				<Shield size={14} /> Security
+			</Tabs.Trigger>
+		</Tabs.List>
 
-	<!-- Feedback -->
-	{#if form?.success}
-		<div class="mt-4 flex items-center gap-2 rounded-[10px] bg-green-50 border border-green-200 px-3.5 py-2.5 text-[13px] text-green-700">
-			<Check size={15} /> {form.success}
-		</div>
-	{/if}
-	{#if form?.error}
-		<div class="mt-4 flex items-center gap-2 rounded-[10px] bg-red-50 border border-red-200 px-3.5 py-2.5 text-[13px] text-red-600">
-			<AlertCircle size={15} /> {form.error}
-		</div>
-	{/if}
+		<!-- Feedback -->
+		{#if form?.success}
+			<Alert.Root class="mt-4 rounded-[10px] bg-green-50 border-green-200">
+				<Check size={15} />
+				<Alert.Description class="text-[13px] text-green-700">{form.success}</Alert.Description>
+			</Alert.Root>
+		{/if}
+		{#if form?.error}
+			<Alert.Root variant="destructive" class="mt-4 rounded-[10px] bg-red-50 border-red-200">
+				<AlertCircle size={15} />
+				<Alert.Description class="text-[13px] text-red-600">{form.error}</Alert.Description>
+			</Alert.Root>
+		{/if}
 
-	<!-- Profile tab -->
-	{#if activeTab === 'profile' && user}
+		<!-- Profile tab -->
+		<Tabs.Content value="profile">
+		{#if user}
 		<form
 			method="POST"
 			action="?/updateProfile"
@@ -130,7 +122,7 @@
 
 			<!-- Banner preview + upload -->
 			<div>
-				<label class="mb-1.5 block text-[13px] font-medium text-stone-600">Banner</label>
+				<Label class="mb-1.5 text-[13px] font-medium text-stone-600">Banner</Label>
 				<div class="relative overflow-hidden rounded-xl border border-stone-200 h-40">
 					{#if bannerPreview}
 						<img src={bannerPreview} alt="Banner preview" class="h-full w-full object-cover" />
@@ -144,31 +136,19 @@
 					<input type="file" name="banner" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden" bind:this={bannerInput} onchange={handleBannerSelect} />
 					<div class="absolute bottom-2 right-2">
 						{#if (user as any).banner}
-							<button
-								type="button"
-							onclick={(e) => { e.stopPropagation(); bannerMenuOpen = !bannerMenuOpen; }}
-								class="flex cursor-pointer items-center gap-1.5 rounded-lg bg-white/90 px-2.5 py-1.5 text-[12px] font-medium text-stone-600 shadow-sm backdrop-blur-sm hover:bg-white"
-							>
-								<Image size={13} /> Change banner
-							</button>
-							{#if bannerMenuOpen}
-								<div class="absolute bottom-full right-0 mb-1.5 w-40 rounded-lg border border-stone-200 bg-white py-1 shadow-lg">
-									<button
-										type="button"
-										onclick={() => { bannerMenuOpen = false; bannerInput?.click(); }}
-										class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[12px] text-stone-600 hover:bg-stone-50"
-									>
+							<DropdownMenu.Root>
+								<DropdownMenu.Trigger class="flex cursor-pointer items-center gap-1.5 rounded-lg bg-white/90 px-2.5 py-1.5 text-[12px] font-medium text-stone-600 shadow-sm backdrop-blur-sm hover:bg-white">
+									<Image size={13} /> Change banner
+								</DropdownMenu.Trigger>
+								<DropdownMenu.Content align="end" class="w-40">
+									<DropdownMenu.Item onclick={() => bannerInput?.click()} class="gap-2 text-[12px]">
 										<Image size={12} /> Upload new
-									</button>
-									<button
-										type="button"
-										onclick={() => { bannerMenuOpen = false; removeImage('banner'); }}
-										class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[12px] text-red-500 hover:bg-red-50"
-									>
+									</DropdownMenu.Item>
+									<DropdownMenu.Item variant="destructive" onclick={() => removeImage('banner')} class="gap-2 text-[12px]">
 										<Trash2 size={12} /> Remove
-									</button>
-								</div>
-							{/if}
+									</DropdownMenu.Item>
+								</DropdownMenu.Content>
+							</DropdownMenu.Root>
 						{:else}
 							<label class="flex cursor-pointer items-center gap-1.5 rounded-lg bg-white/90 px-2.5 py-1.5 text-[12px] font-medium text-stone-600 shadow-sm backdrop-blur-sm hover:bg-white">
 								<Image size={13} /> Upload banner
@@ -181,7 +161,7 @@
 
 			<!-- Avatar preview + upload -->
 			<div>
-				<label class="mb-1.5 block text-[13px] font-medium text-stone-600">Profile Picture</label>
+				<Label class="mb-1.5 text-[13px] font-medium text-stone-600">Profile Picture</Label>
 				<div class="flex items-center gap-4">
 					<div class="relative">
 						{#if avatarPreview}
@@ -195,31 +175,19 @@
 						{/if}
 						<input type="file" name="avatar" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden" bind:this={avatarInput} onchange={handleAvatarSelect} />
 						{#if (user as any).avatar}
-							<button
-								type="button"
-							onclick={(e) => { e.stopPropagation(); avatarMenuOpen = !avatarMenuOpen; }}
-								class="absolute -bottom-1 -right-1 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-white shadow-sm border border-stone-200 hover:bg-stone-50"
-							>
-								<Camera size={13} class="text-stone-500" />
-							</button>
-							{#if avatarMenuOpen}
-								<div class="absolute -bottom-1 left-8 w-40 rounded-lg border border-stone-200 bg-white py-1 shadow-lg z-10">
-									<button
-										type="button"
-										onclick={() => { avatarMenuOpen = false; avatarInput?.click(); }}
-										class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[12px] text-stone-600 hover:bg-stone-50"
-									>
+							<DropdownMenu.Root>
+								<DropdownMenu.Trigger class="absolute -bottom-1 -right-1 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-white shadow-sm border border-stone-200 hover:bg-stone-50">
+									<Camera size={13} class="text-stone-500" />
+								</DropdownMenu.Trigger>
+								<DropdownMenu.Content class="w-40">
+									<DropdownMenu.Item onclick={() => avatarInput?.click()} class="gap-2 text-[12px]">
 										<Camera size={12} /> Upload new
-									</button>
-									<button
-										type="button"
-										onclick={() => { avatarMenuOpen = false; removeImage('avatar'); }}
-										class="flex w-full cursor-pointer items-center gap-2 px-3 py-1.5 text-[12px] text-red-500 hover:bg-red-50"
-									>
+									</DropdownMenu.Item>
+									<DropdownMenu.Item variant="destructive" onclick={() => removeImage('avatar')} class="gap-2 text-[12px]">
 										<Trash2 size={12} /> Remove
-									</button>
-								</div>
-							{/if}
+									</DropdownMenu.Item>
+								</DropdownMenu.Content>
+							</DropdownMenu.Root>
 						{:else}
 							<label class="absolute -bottom-1 -right-1 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-white shadow-sm border border-stone-200 hover:bg-stone-50">
 								<Camera size={13} class="text-stone-500" />
@@ -234,22 +202,22 @@
 				</div>
 			</div>
 
-			<hr class="border-stone-100" />
+			<Separator class="bg-stone-100" />
 
 			<div>
-				<label for="name" class="mb-1.5 block text-[13px] font-medium text-stone-600">Full Name</label>
-				<input
+				<Label for="name" class="mb-1.5 text-[13px] font-medium text-stone-600">Full Name</Label>
+				<Input
 					id="name"
 					name="name"
 					type="text"
 					required
 					value={user.name}
-					class="w-full rounded-[10px] border border-stone-200 bg-white px-3.5 py-2.5 text-[14px] text-stone-800 outline-none transition-colors focus:border-green-400 focus:ring-2 focus:ring-green-100"
+					class="h-auto rounded-[10px] border-stone-200 bg-white px-3.5 py-2.5 text-[14px] text-stone-800 focus-visible:border-green-400 focus-visible:ring-green-100"
 				/>
 			</div>
 
 			<div>
-				<label for="username" class="mb-1.5 block text-[13px] font-medium text-stone-600">Username</label>
+				<Label for="username" class="mb-1.5 text-[13px] font-medium text-stone-600">Username</Label>
 				<div class="flex items-center rounded-[10px] border border-stone-200 bg-white transition-colors focus-within:border-green-400 focus-within:ring-2 focus-within:ring-green-100">
 					<span class="pl-3.5 text-[14px] text-stone-400">@</span>
 					<input
@@ -265,100 +233,102 @@
 			</div>
 
 			<div>
-				<label for="email" class="mb-1.5 block text-[13px] font-medium text-stone-600">Email</label>
-				<input
+				<Label for="email" class="mb-1.5 text-[13px] font-medium text-stone-600">Email</Label>
+				<Input
 					id="email"
 					type="email"
 					disabled
 					value={user.email}
-					class="w-full rounded-[10px] border border-stone-100 bg-stone-50 px-3.5 py-2.5 text-[14px] text-stone-400"
+					class="h-auto rounded-[10px] border-stone-100 bg-stone-50 px-3.5 py-2.5 text-[14px] text-stone-400"
 				/>
 				<p class="mt-1 text-[12px] text-stone-400">Email cannot be changed here.</p>
 			</div>
 
-			<button
+			<Button
 				type="submit"
 				disabled={uploading}
-				class="flex cursor-pointer items-center gap-2 rounded-xl bg-green-700 px-7 py-3 text-[13px] font-semibold text-white shadow-lg shadow-green-900/20 transition-all hover:bg-green-800 hover:shadow-xl disabled:opacity-50"
+				class="rounded-xl bg-green-700 px-7 py-3 text-[13px] font-semibold shadow-lg shadow-green-900/20 hover:bg-green-800 hover:shadow-xl h-auto"
 			>
 				<Save size={14} />
 				{uploading ? 'Saving…' : 'Save Changes'}
-			</button>
+			</Button>
 		</form>
-	{/if}
+		{/if}
+		</Tabs.Content>
 
-	<!-- Security tab -->
-	{#if activeTab === 'security'}
-		<form method="POST" action="?/changePassword" use:enhance class="mt-6 space-y-5">
-			<div>
-				<label for="currentPassword" class="mb-1.5 block text-[13px] font-medium text-stone-600">Current Password</label>
-				<div class="flex items-center rounded-[10px] border border-stone-200 bg-white transition-colors focus-within:border-green-400 focus-within:ring-2 focus-within:ring-green-100">
-					<input
-						id="currentPassword"
-						name="currentPassword"
-						type={showCurrentPassword ? 'text' : 'password'}
-						required
-						class="w-full rounded-l-[10px] bg-transparent px-3.5 py-2.5 text-[14px] text-stone-800 outline-none"
-					/>
-					<button
-						type="button"
-						onclick={() => (showCurrentPassword = !showCurrentPassword)}
-						class="cursor-pointer px-3 text-stone-400 hover:text-stone-600"
-					>
-						{#if showCurrentPassword}<EyeOff size={16} />{:else}<Eye size={16} />{/if}
-					</button>
+		<!-- Security tab -->
+		<Tabs.Content value="security">
+			<form method="POST" action="?/changePassword" use:enhance class="mt-6 space-y-5">
+				<div>
+					<Label for="currentPassword" class="mb-1.5 text-[13px] font-medium text-stone-600">Current Password</Label>
+					<div class="flex items-center rounded-[10px] border border-stone-200 bg-white transition-colors focus-within:border-green-400 focus-within:ring-2 focus-within:ring-green-100">
+						<input
+							id="currentPassword"
+							name="currentPassword"
+							type={showCurrentPassword ? 'text' : 'password'}
+							required
+							class="w-full rounded-l-[10px] bg-transparent px-3.5 py-2.5 text-[14px] text-stone-800 outline-none"
+						/>
+						<button
+							type="button"
+							onclick={() => (showCurrentPassword = !showCurrentPassword)}
+							class="cursor-pointer px-3 text-stone-400 hover:text-stone-600"
+						>
+							{#if showCurrentPassword}<EyeOff size={16} />{:else}<Eye size={16} />{/if}
+						</button>
+					</div>
 				</div>
-			</div>
 
-			<div>
-				<label for="newPassword" class="mb-1.5 block text-[13px] font-medium text-stone-600">New Password</label>
-				<div class="flex items-center rounded-[10px] border border-stone-200 bg-white transition-colors focus-within:border-green-400 focus-within:ring-2 focus-within:ring-green-100">
-					<input
-						id="newPassword"
-						name="newPassword"
-						type={showNewPassword ? 'text' : 'password'}
-						required
-						minlength={8}
-						class="w-full rounded-l-[10px] bg-transparent px-3.5 py-2.5 text-[14px] text-stone-800 outline-none"
-					/>
-					<button
-						type="button"
-						onclick={() => (showNewPassword = !showNewPassword)}
-						class="cursor-pointer px-3 text-stone-400 hover:text-stone-600"
-					>
-						{#if showNewPassword}<EyeOff size={16} />{:else}<Eye size={16} />{/if}
-					</button>
+				<div>
+					<Label for="newPassword" class="mb-1.5 text-[13px] font-medium text-stone-600">New Password</Label>
+					<div class="flex items-center rounded-[10px] border border-stone-200 bg-white transition-colors focus-within:border-green-400 focus-within:ring-2 focus-within:ring-green-100">
+						<input
+							id="newPassword"
+							name="newPassword"
+							type={showNewPassword ? 'text' : 'password'}
+							required
+							minlength={8}
+							class="w-full rounded-l-[10px] bg-transparent px-3.5 py-2.5 text-[14px] text-stone-800 outline-none"
+						/>
+						<button
+							type="button"
+							onclick={() => (showNewPassword = !showNewPassword)}
+							class="cursor-pointer px-3 text-stone-400 hover:text-stone-600"
+						>
+							{#if showNewPassword}<EyeOff size={16} />{:else}<Eye size={16} />{/if}
+						</button>
+					</div>
 				</div>
-			</div>
 
-			<div>
-				<label for="confirmPassword" class="mb-1.5 block text-[13px] font-medium text-stone-600">Confirm New Password</label>
-				<div class="flex items-center rounded-[10px] border border-stone-200 bg-white transition-colors focus-within:border-green-400 focus-within:ring-2 focus-within:ring-green-100">
-					<input
-						id="confirmPassword"
-						name="confirmPassword"
-						type={showConfirmPassword ? 'text' : 'password'}
-						required
-						minlength={8}
-						class="w-full rounded-l-[10px] bg-transparent px-3.5 py-2.5 text-[14px] text-stone-800 outline-none"
-					/>
-					<button
-						type="button"
-						onclick={() => (showConfirmPassword = !showConfirmPassword)}
-						class="cursor-pointer px-3 text-stone-400 hover:text-stone-600"
-					>
-						{#if showConfirmPassword}<EyeOff size={16} />{:else}<Eye size={16} />{/if}
-					</button>
+				<div>
+					<Label for="confirmPassword" class="mb-1.5 text-[13px] font-medium text-stone-600">Confirm New Password</Label>
+					<div class="flex items-center rounded-[10px] border border-stone-200 bg-white transition-colors focus-within:border-green-400 focus-within:ring-2 focus-within:ring-green-100">
+						<input
+							id="confirmPassword"
+							name="confirmPassword"
+							type={showConfirmPassword ? 'text' : 'password'}
+							required
+							minlength={8}
+							class="w-full rounded-l-[10px] bg-transparent px-3.5 py-2.5 text-[14px] text-stone-800 outline-none"
+						/>
+						<button
+							type="button"
+							onclick={() => (showConfirmPassword = !showConfirmPassword)}
+							class="cursor-pointer px-3 text-stone-400 hover:text-stone-600"
+						>
+							{#if showConfirmPassword}<EyeOff size={16} />{:else}<Eye size={16} />{/if}
+						</button>
+					</div>
 				</div>
-			</div>
 
-			<button
-				type="submit"
-				class="flex cursor-pointer items-center gap-2 rounded-xl bg-green-700 px-7 py-3 text-[13px] font-semibold text-white shadow-lg shadow-green-900/20 transition-all hover:bg-green-800 hover:shadow-xl"
-			>
-				<Lock size={14} />
-				Change Password
-			</button>
-		</form>
-	{/if}
+				<Button
+					type="submit"
+					class="rounded-xl bg-green-700 px-7 py-3 text-[13px] font-semibold shadow-lg shadow-green-900/20 hover:bg-green-800 hover:shadow-xl h-auto"
+				>
+					<Lock size={14} />
+					Change Password
+				</Button>
+			</form>
+		</Tabs.Content>
+	</Tabs.Root>
 </div>

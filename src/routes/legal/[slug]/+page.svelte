@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { ChevronLeft } from 'lucide-svelte';
+	import { Button } from '$lib/components/ui/button';
 
 	let { data } = $props();
 
@@ -24,10 +25,10 @@
 	<div class="legal-content">
 		<div class="legal-inner">
 			<div class="legal-nav">
-				<a href="/legal" class="back-link">
+				<Button variant="outline" href="/legal" class="back-link h-auto">
 					<ChevronLeft size={14} />
 					All Legal Documents
-				</a>
+				</Button>
 			</div>
 
 			<h1 class="legal-heading">{data.document.title}</h1>
@@ -56,25 +57,6 @@
 
 	.legal-nav {
 		margin-bottom: 32px;
-	}
-
-	.back-link {
-		display: flex;
-		align-items: center;
-		gap: 6px;
-		padding: 6px 12px;
-		background: #f5f5f4;
-		border: 1.5px solid #e7e5e4;
-		border-radius: 10px;
-		color: #78716c;
-		font-size: 12px;
-		transition: all 0.2s;
-		text-decoration: none;
-	}
-
-	.back-link:hover {
-		color: #1c1917;
-		border-color: #d6d3d1;
 	}
 
 	.legal-inner {
