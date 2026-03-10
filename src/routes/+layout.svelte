@@ -3,7 +3,8 @@
 	import { page } from '$app/stores';
 	import { signOut } from '$lib/auth-client';
 	import { goto, invalidateAll } from '$app/navigation';
-	import { TreePine, User, Settings, LogOut, ChevronDown } from 'lucide-svelte';
+	import { slide } from 'svelte/transition';
+	import { TreePine, User, Settings, LogOut, ChevronDown, Menu, X } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Separator } from '$lib/components/ui/separator';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
@@ -11,6 +12,7 @@
 
 	let { children, data } = $props();
 	let dropdownOpen = $state(false);
+	let mobileMenuOpen = $state(false);
 
 	const navLinks = [
 		{ href: '/', label: 'Home' },
@@ -80,6 +82,17 @@
 				</div>
 
 				<div class="flex items-center gap-3">
+					<button
+						class="rounded-md p-1.5 text-stone-500 transition-colors hover:bg-stone-100 hover:text-stone-700 md:hidden"
+						onclick={() => mobileMenuOpen = !mobileMenuOpen}
+						aria-label="Toggle menu"
+					>
+						{#if mobileMenuOpen}
+							<X size={20} />
+						{:else}
+							<Menu size={20} />
+						{/if}
+					</button>
 					{#if data.user}
 						<DropdownMenu.Root bind:open={dropdownOpen}>
 							<DropdownMenu.Trigger class="flex cursor-pointer items-center gap-2 rounded-full py-1 pl-1 pr-2.5 transition-colors hover:bg-stone-100">
@@ -134,6 +147,35 @@
 					{/if}
 				</div>
 			</nav>
+
+			{#if mobileMenuOpen}
+				<div transition:slide={{ duration: 200 }} class="border-t border-stone-200/60 bg-white px-6 py-3 md:hidden">
+					<div class="flex flex-col gap-1">
+						{#each navLinks as link}
+							{@const isActive = $page.url.pathname === link.href}
+							<a
+								href={link.href}
+								onclick={() => mobileMenuOpen = false}
+								class="rounded-md px-3 py-2 text-[14px] font-medium transition-colors
+									{isActive
+									? 'bg-green-50 text-green-600'
+									: 'text-stone-500 hover:bg-stone-50 hover:text-stone-700'}"
+							>
+								{link.label}
+							</a>
+						{/each}
+						{#if data.user?.role === 'admin'}
+							<a
+								href="/trees/new"
+								onclick={() => mobileMenuOpen = false}
+								class="rounded-md px-3 py-2 text-[14px] font-medium text-stone-500 transition-colors hover:bg-stone-50 hover:text-stone-700"
+							>
+								Register a Tree
+							</a>
+						{/if}
+					</div>
+				</div>
+			{/if}
 		</header>
 
 		<main class="flex-1">
