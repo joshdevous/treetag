@@ -43,6 +43,24 @@
 
 	let locating = $state(false);
 
+	const isDev = $derived($page.url.hostname === 'localhost');
+
+	function fillMockData() {
+		name = 'The Great Beech of Beeches Way';
+		species = 'European Beech';
+		description = 'A magnificent mature beech tree with a wide spreading canopy that provides excellent shade in summer. The trunk has several initials carved into the bark dating back decades, and the roots form a dramatic buttress pattern at the base.';
+		estimatedAge = '120';
+		height = '22';
+		trunkDiameter = '95';
+		plantedDate = '1906-03-15';
+		plantedBy = 'Charlton Kings Parish Council';
+		latitude = '51.8841';
+		longitude = '-2.0498';
+		address = 'Beeches Way, Charlton Kings, GL53 8PQ';
+		tags = 'heritage, mature, shady, landmark';
+		features = 'wide canopy, buttress roots, carved initials, bird nesting site';
+	}
+
 	const MAX_PHOTO_SIZE = 10 * 1024 * 1024; // 10 MB
 	const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
@@ -125,12 +143,25 @@
 	</a>
 
 	<div class="mb-8">
-		<h1 class="text-2xl font-bold text-stone-900" style="font-family: 'Playfair Display', serif;">
-			Register a Tree
-		</h1>
-		<p class="mt-1 text-[14px] text-stone-400">
-			Add a new tree to the Charlton Kings database.
-		</p>
+		<div class="flex items-start justify-between gap-4">
+			<div>
+				<h1 class="text-2xl font-bold text-stone-900" style="font-family: 'Playfair Display', serif;">
+					Register a Tree
+				</h1>
+				<p class="mt-1 text-[14px] text-stone-400">
+					Add a new tree to the Charlton Kings database.
+				</p>
+			</div>
+			{#if isDev}
+				<button
+					type="button"
+					onclick={fillMockData}
+					class="flex-shrink-0 rounded-[10px] border border-dashed border-amber-300 bg-amber-50 px-3 py-1.5 text-[12px] font-medium text-amber-700 transition-colors hover:bg-amber-100"
+				>
+					Fill Mock Data
+				</button>
+			{/if}
+		</div>
 		{#if !data.isAdmin}
 			<div class="mt-4 flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4">
 				<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 flex-shrink-0 text-blue-600"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
@@ -146,7 +177,6 @@
 			submitting = true;
 			return async ({ update, result }) => {
 				submitting = false;
-				if (result.type === 'redirect') return;
 				await update();
 			};
 		}}
