@@ -2,86 +2,186 @@
 	import '../app.css';
 	import { page } from '$app/stores';
 	import { signOut } from '$lib/auth-client';
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
+	import { TreePine, User, Settings, LogOut, ChevronDown } from 'lucide-svelte';
 
 	let { children, data } = $props();
+	let dropdownOpen = $state(false);
 
 	const navLinks = [
 		{ href: '/', label: 'Home' },
-		{ href: '/trees', label: 'Map View' },
-		{ href: '/trees/browse', label: 'Tree Lookup' },
-		{ href: '/faq', label: 'FAQ' }
+		{ href: '/trees', label: 'Explore' }
 	];
 
+	function getInitials(name: string) {
+		return name
+			.split(' ')
+			.slice(0, 2)
+			.map((w) => w[0])
+			.join('')
+			.toUpperCase();
+	}
+
 	async function handleSignOut() {
+		dropdownOpen = false;
 		await signOut();
+		await invalidateAll();
 		goto('/');
+	}
+
+	function handleClickOutside(e: MouseEvent) {
+		const target = e.target as HTMLElement;
+		if (!target.closest('.user-dropdown')) {
+			dropdownOpen = false;
+		}
 	}
 </script>
 
-<div class="flex min-h-screen flex-col">
-	<header class="border-b border-border bg-background">
-		<nav class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3">
-			<a href="/" class="flex items-center gap-2 font-bold text-lg">
-				<span class="text-2xl">🌳</span>
-				Treetag
-			</a>
+<svelte:window onclick={handleClickOutside} />
 
-			<ul class="hidden items-center gap-6 md:flex">
-				{#each navLinks as link}
-					<li>
+{#if $page.url.pathname.startsWith('/auth/')}
+	{@render children()}
+{:else}
+	<div class="flex min-h-screen flex-col">
+		<header class="sticky top-0 z-50 border-b border-stone-200/60 bg-white/70 backdrop-blur-md">
+			<nav class="mx-auto flex h-14 max-w-7xl items-center justify-between px-6">
+				<a href="/" class="flex items-center gap-2.5">
+					<div
+						class="flex h-8 w-8 items-center justify-center rounded-[9px] bg-gradient-to-br from-green-600 to-green-500"
+						style="box-shadow: 0 2px 8px rgba(22,163,74,0.2);"
+					>
+						<TreePine size={17} color="#fff" strokeWidth={2.5} />
+					</div>
+					<span class="text-[17px] tracking-tight">
+						<span class="font-bold text-stone-900">Tree</span><span
+							class="font-normal text-green-600">tag</span
+						>
+					</span>
+				</a>
+
+				<div class="hidden items-center gap-0.5 md:flex">
+					{#each navLinks as link}
+						{@const isActive = $page.url.pathname === link.href}
 						<a
 							href={link.href}
-							class="text-sm font-medium transition-colors hover:text-foreground/80
-								{$page.url.pathname === link.href ? 'text-foreground' : 'text-muted-foreground'}"
+							class="rounded-md px-3.5 py-1.5 text-[13px] font-medium transition-colors
+								{isActive
+								? 'text-green-600'
+								: 'text-stone-400 hover:text-stone-700'}"
 						>
 							{link.label}
 						</a>
-					</li>
-				{/each}
-				{#if data.user?.role === 'admin' || data.user?.role === 'guardian'}
-					<li>
-						<a href="/trees/new" class="text-sm font-medium text-muted-foreground hover:text-foreground/80">
+					{/each}
+					{#if data.user?.role === 'admin'}
+						<a
+							href="/trees/new"
+							class="rounded-md px-3.5 py-1.5 text-[13px] font-medium text-stone-400 transition-colors hover:text-stone-700"
+						>
 							Register a Tree
 						</a>
-					</li>
-				{/if}
-			</ul>
+					{/if}
+				</div>
 
-			<div class="flex items-center gap-2">
-				{#if data.user}
-					<span class="hidden text-sm text-muted-foreground sm:block">{data.user.name}</span>
-					<a href="/profile" class="text-sm font-medium hover:underline">Profile</a>
-					<button
-						onclick={handleSignOut}
-						class="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-accent"
+				<div class="flex items-center gap-3">
+					{#if data.user}
+						<div class="user-dropdown relative">
+							<button
+								onclick={() => (dropdownOpen = !dropdownOpen)}
+								class="flex cursor-pointer items-center gap-2 rounded-full py-1 pl-1 pr-2.5 transition-colors hover:bg-stone-100"
+							>
+								<div
+									class="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-green-600 to-emerald-500 text-[11px] font-bold text-white"
+								>
+									{getInitials(data.user.name)}
+								</div>
+								<span class="hidden text-[13px] font-medium text-stone-700 sm:block"
+									>{data.user.name}</span
+								>
+								<ChevronDown
+									size={14}
+									class="hidden text-stone-400 transition-transform sm:block {dropdownOpen
+										? 'rotate-180'
+										: ''}"
+								/>
+							</button>
+
+							{#if dropdownOpen}
+								<div
+									class="absolute right-0 top-full mt-1.5 w-52 rounded-xl border border-stone-200 bg-white py-1.5 shadow-lg shadow-stone-200/60"
+								>
+									<div class="border-b border-stone-100 px-3.5 pb-2.5 pt-2">
+										<p class="text-[13px] font-medium text-stone-800">{data.user.name}</p>
+										<p class="text-[12px] text-stone-400">@{data.user.username}</p>
+									</div>
+									<div class="py-1">
+										<a
+											href="/@{data.user.username}"
+											onclick={() => (dropdownOpen = false)}
+											class="flex cursor-pointer items-center gap-2.5 px-3.5 py-2 text-[13px] text-stone-600 transition-colors hover:bg-stone-50 hover:text-stone-900"
+										>
+											<User size={15} class="text-stone-400" />
+											Profile
+										</a>
+										<a
+											href="/settings"
+											onclick={() => (dropdownOpen = false)}
+											class="flex cursor-pointer items-center gap-2.5 px-3.5 py-2 text-[13px] text-stone-600 transition-colors hover:bg-stone-50 hover:text-stone-900"
+										>
+											<Settings size={15} class="text-stone-400" />
+											Settings
+										</a>
+									</div>
+									<div class="border-t border-stone-100 pt-1">
+										<button
+											onclick={handleSignOut}
+											class="flex w-full cursor-pointer items-center gap-2.5 px-3.5 py-2 text-[13px] text-red-600 transition-colors hover:bg-red-50"
+										>
+											<LogOut size={15} />
+											Log Out
+										</button>
+									</div>
+								</div>
+							{/if}
+						</div>
+					{:else}
+						<a
+							href="/auth/login"
+							class="text-[13px] font-medium text-stone-500 transition-colors hover:text-stone-900"
+						>
+							Log In
+						</a>
+						<a
+							href="/auth/register"
+							class="rounded-lg border border-green-600/30 px-4 py-1.5 text-[13px] font-semibold text-green-600 transition-colors hover:bg-green-50 hover:border-green-600/50"
+						>
+							Sign Up
+						</a>
+					{/if}
+				</div>
+			</nav>
+		</header>
+
+		<main class="flex-1">
+			{@render children()}
+		</main>
+
+		<footer class="border-t border-stone-200 bg-stone-50/60">
+			<div class="mx-auto flex max-w-7xl flex-col items-center gap-3 px-6 py-8 sm:flex-row sm:justify-between">
+				<div class="flex items-center gap-2">
+					<div
+						class="flex h-6 w-6 items-center justify-center rounded-[7px] bg-gradient-to-br from-green-600 to-green-500"
 					>
-						Log Out
-					</button>
-				{:else}
-					<a
-						href="/auth/login"
-						class="rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-accent"
-					>
-						Log In
-					</a>
-					<a
-						href="/auth/register"
-						class="rounded-md bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-					>
-						Sign Up
-					</a>
-				{/if}
+						<TreePine size={13} color="#fff" strokeWidth={2.5} />
+					</div>
+					<span class="text-[13px] text-stone-400">
+						&copy; {new Date().getFullYear()} Treetag &mdash; Charlton Kings Tree Guardian Project
+					</span>
+				</div>
+				<div class="flex items-center gap-4">
+					<a href="/legal" class="text-[12.5px] text-stone-400 transition-colors hover:text-stone-600">Legal</a>
+				</div>
 			</div>
-		</nav>
-	</header>
-
-	<main class="flex-1">
-		{@render children()}
-	</main>
-
-	<footer class="border-t border-border py-6 text-center text-sm text-muted-foreground">
-		Treetag &mdash; Charlton Kings Tree Guardian Project
-	</footer>
-</div>
+		</footer>
+	</div>
+{/if}
 
