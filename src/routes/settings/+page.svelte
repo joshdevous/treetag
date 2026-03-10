@@ -12,7 +12,8 @@
 		Camera,
 		Image,
 		Save,
-		Trash2
+		Trash2,
+		LoaderCircle
 	} from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -33,28 +34,40 @@
 
 	let avatarPreview = $state<string | null>(null);
 	let bannerPreview = $state<string | null>(null);
+	let changingPassword = $state(false);
 	let uploading = $state(false);
+	let removeAvatar = $state(false);
+	let removeBanner = $state(false);
 
 	let bannerInput = $state<HTMLInputElement | null>(null);
 	let avatarInput = $state<HTMLInputElement | null>(null);
 
-	async function removeImage(type: 'avatar' | 'banner') {
-		const body = new FormData();
-		body.append('type', type);
-		const res = await fetch('?/removeImage', { method: 'POST', body });
-		if (res.ok) {
-			window.location.reload();
+	function removeImage(type: 'avatar' | 'banner') {
+		if (type === 'avatar') {
+			removeAvatar = true;
+			avatarPreview = null;
+			if (avatarInput) avatarInput.value = '';
+		} else {
+			removeBanner = true;
+			bannerPreview = null;
+			if (bannerInput) bannerInput.value = '';
 		}
 	}
 
 	function handleAvatarSelect(e: Event) {
 		const file = (e.target as HTMLInputElement).files?.[0];
-		if (file) avatarPreview = URL.createObjectURL(file);
+		if (file) {
+			avatarPreview = URL.createObjectURL(file);
+			removeAvatar = false;
+		}
 	}
 
 	function handleBannerSelect(e: Event) {
 		const file = (e.target as HTMLInputElement).files?.[0];
-		if (file) bannerPreview = URL.createObjectURL(file);
+		if (file) {
+			bannerPreview = URL.createObjectURL(file);
+			removeBanner = false;
+		}
 	}
 
 	function getInitials(name: string) {
@@ -78,10 +91,10 @@
 
 	<Tabs.Root bind:value={activeTab} class="mt-6">
 		<Tabs.List class="bg-transparent w-full justify-start gap-1 rounded-none border-b border-stone-200 p-0 h-auto">
-			<Tabs.Trigger value="profile" class="rounded-none border-b-2 border-transparent px-4 pb-2.5 pt-0 text-[13px] font-medium text-stone-400 hover:text-stone-600 data-[state=active]:border-green-600 data-[state=active]:text-green-600 data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+			<Tabs.Trigger value="profile" class="rounded-none border-b-2 border-transparent px-4 pb-2.5 pt-0 text-[13px] font-medium text-stone-400 hover:text-stone-600 data-[state=active]:border-b-green-600 data-[state=active]:text-green-600 data-[state=active]:bg-transparent data-[state=active]:shadow-none">
 				<User size={14} /> Profile
 			</Tabs.Trigger>
-			<Tabs.Trigger value="security" class="rounded-none border-b-2 border-transparent px-4 pb-2.5 pt-0 text-[13px] font-medium text-stone-400 hover:text-stone-600 data-[state=active]:border-green-600 data-[state=active]:text-green-600 data-[state=active]:bg-transparent data-[state=active]:shadow-none">
+			<Tabs.Trigger value="security" class="rounded-none border-b-2 border-transparent px-4 pb-2.5 pt-0 text-[13px] font-medium text-stone-400 hover:text-stone-600 data-[state=active]:border-b-green-600 data-[state=active]:text-green-600 data-[state=active]:bg-transparent data-[state=active]:shadow-none">
 				<Shield size={14} /> Security
 			</Tabs.Trigger>
 		</Tabs.List>
@@ -113,6 +126,8 @@
 					uploading = false;
 					avatarPreview = null;
 					bannerPreview = null;
+					removeAvatar = false;
+					removeBanner = false;
 					await update();
 				};
 			}}
@@ -126,7 +141,7 @@
 				<div class="relative overflow-hidden rounded-xl border border-stone-200 h-40">
 					{#if bannerPreview}
 						<img src={bannerPreview} alt="Banner preview" class="h-full w-full object-cover" />
-					{:else if (user as any).banner}
+					{:else if (user as any).banner && !removeBanner}
 						<img src={(user as any).banner} alt="Current banner" class="h-full w-full object-cover" />
 					{:else}
 						<div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-green-600/90 via-emerald-500/80 to-teal-400/70">
@@ -135,7 +150,7 @@
 					{/if}
 					<input type="file" name="banner" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden" bind:this={bannerInput} onchange={handleBannerSelect} />
 					<div class="absolute bottom-2 right-2">
-						{#if (user as any).banner}
+						{#if bannerPreview || ((user as any).banner && !removeBanner)}
 							<DropdownMenu.Root>
 								<DropdownMenu.Trigger class="flex cursor-pointer items-center gap-1.5 rounded-lg bg-white/90 px-2.5 py-1.5 text-[12px] font-medium text-stone-600 shadow-sm backdrop-blur-sm hover:bg-white">
 									<Image size={13} /> Change banner
@@ -166,7 +181,7 @@
 					<div class="relative">
 						{#if avatarPreview}
 							<img src={avatarPreview} alt="Avatar preview" class="h-20 w-20 rounded-full border-2 border-stone-200 object-cover" />
-						{:else if (user as any).avatar}
+						{:else if (user as any).avatar && !removeAvatar}
 							<img src={(user as any).avatar} alt="Current avatar" class="h-20 w-20 rounded-full border-2 border-stone-200 object-cover" />
 						{:else}
 							<div class="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-green-600 to-emerald-500 text-2xl font-bold text-white">
@@ -174,7 +189,7 @@
 							</div>
 						{/if}
 						<input type="file" name="avatar" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden" bind:this={avatarInput} onchange={handleAvatarSelect} />
-						{#if (user as any).avatar}
+						{#if avatarPreview || ((user as any).avatar && !removeAvatar)}
 							<DropdownMenu.Root>
 								<DropdownMenu.Trigger class="absolute -bottom-1 -right-1 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-white shadow-sm border border-stone-200 hover:bg-stone-50">
 									<Camera size={13} class="text-stone-500" />
@@ -244,21 +259,36 @@
 				<p class="mt-1 text-[12px] text-stone-400">Email cannot be changed here.</p>
 			</div>
 
-			<Button
-				type="submit"
-				disabled={uploading}
-				class="rounded-xl bg-green-700 px-7 py-3 text-[13px] font-semibold shadow-lg shadow-green-900/20 hover:bg-green-800 hover:shadow-xl h-auto"
-			>
-				<Save size={14} />
-				{uploading ? 'Saving…' : 'Save Changes'}
-			</Button>
+			{#if removeAvatar}<input type="hidden" name="removeAvatar" value="true" />{/if}
+			{#if removeBanner}<input type="hidden" name="removeBanner" value="true" />{/if}
+
+			<div class="flex justify-end">
+				<Button
+					type="submit"
+					disabled={uploading}
+					class="rounded-xl bg-green-700 px-7 py-3 text-[13px] font-semibold shadow-lg shadow-green-900/20 hover:bg-green-800 hover:shadow-xl h-auto min-w-[140px]"
+				>
+					{#if uploading}
+						<LoaderCircle size={14} class="animate-spin" />
+					{:else}
+						<Save size={14} />
+					{/if}
+					Save Changes
+				</Button>
+			</div>
 		</form>
 		{/if}
 		</Tabs.Content>
 
 		<!-- Security tab -->
 		<Tabs.Content value="security">
-			<form method="POST" action="?/changePassword" use:enhance class="mt-6 space-y-5">
+			<form method="POST" action="?/changePassword" use:enhance={() => {
+				changingPassword = true;
+				return async ({ update }) => {
+					changingPassword = false;
+					await update();
+				};
+			}} class="mt-6 space-y-5">
 				<div>
 					<Label for="currentPassword" class="mb-1.5 text-[13px] font-medium text-stone-600">Current Password</Label>
 					<div class="flex items-center rounded-[10px] border border-stone-200 bg-white transition-colors focus-within:border-green-400 focus-within:ring-2 focus-within:ring-green-100">
@@ -321,13 +351,20 @@
 					</div>
 				</div>
 
-				<Button
-					type="submit"
-					class="rounded-xl bg-green-700 px-7 py-3 text-[13px] font-semibold shadow-lg shadow-green-900/20 hover:bg-green-800 hover:shadow-xl h-auto"
-				>
-					<Lock size={14} />
-					Change Password
-				</Button>
+				<div class="flex justify-end">
+					<Button
+						type="submit"
+						disabled={changingPassword}
+						class="rounded-xl bg-green-700 px-7 py-3 text-[13px] font-semibold shadow-lg shadow-green-900/20 hover:bg-green-800 hover:shadow-xl h-auto min-w-[170px]"
+					>
+						{#if changingPassword}
+							<LoaderCircle size={14} class="animate-spin" />
+						{:else}
+							<Lock size={14} />
+						{/if}
+						Change Password
+					</Button>
+				</div>
 			</form>
 		</Tabs.Content>
 	</Tabs.Root>

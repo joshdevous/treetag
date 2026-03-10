@@ -156,18 +156,6 @@
 	class="relative -mt-14 flex min-h-[calc(70vh+56px)] flex-col items-center justify-center overflow-hidden px-6 pt-28 pb-20"
 	style="background: linear-gradient(180deg, #ecfdf5 0%, #d1fae5 30%, #a7f3d0 60%, #d1fae5 85%, #ffffff 100%);"
 >
-	<!-- Animated glow orbs -->
-	<div
-		class="pointer-events-none absolute inset-0"
-		style="
-			background:
-				radial-gradient(circle 500px at 50% 35%, rgba(34, 197, 94, 0.25) 0%, transparent 70%),
-				radial-gradient(circle 350px at 25% 60%, rgba(16, 185, 129, 0.2) 0%, transparent 70%),
-				radial-gradient(circle 350px at 75% 50%, rgba(52, 211, 153, 0.2) 0%, transparent 70%);
-			animation: hero-glow 8s ease-in-out infinite;
-		"
-	></div>
-
 	<!-- Floating nature icons -->
 	<div class="pointer-events-none absolute inset-0 overflow-hidden">
 		<div class="hero-float-icon" style="top: 5%; left: 6%; animation-delay: 0s;">

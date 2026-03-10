@@ -37,37 +37,60 @@ export const actions: Actions = {
 				body: { name, username }
 			});
 
-			// Handle image uploads
-			const hasAvatar = avatarFile && avatarFile.size > 0;
-			const hasBanner = bannerFile && bannerFile.size > 0;
+// Handle image uploads and removals
+		const hasAvatar = avatarFile && avatarFile.size > 0;
+		const hasBanner = bannerFile && bannerFile.size > 0;
+		const removeAvatarFlag = form.get('removeAvatar') === 'true';
+		const removeBannerFlag = form.get('removeBanner') === 'true';
+		const needsRemoveAvatar = removeAvatarFlag && !hasAvatar;
+		const needsRemoveBanner = removeBannerFlag && !hasBanner;
 
-			if (hasAvatar || hasBanner) {
-				const db = client.db('treetag');
-				const user = await db.collection('user').findOne({ _id: new ObjectId(session.user.id) });
-				const updates: Record<string, string> = {};
+		if (hasAvatar || hasBanner || needsRemoveAvatar || needsRemoveBanner) {
+			const db = client.db('treetag');
+			const user = await db.collection('user').findOne({ _id: new ObjectId(session.user.id) });
+			const sets: Record<string, string> = {};
+			const unsets: Record<string, string> = {};
 
-				if (hasAvatar) {
-					if (user?.avatarKey) {
-						try { await deletePhoto(user.avatarKey as string); } catch {}
-					}
-					const result = await uploadPhoto(avatarFile, 'avatars');
-					updates.avatar = result.url;
-					updates.avatarKey = result.key;
+			if (hasAvatar) {
+				if (user?.avatarKey) {
+					try { await deletePhoto(user.avatarKey as string); } catch {}
 				}
-
-				if (hasBanner) {
-					if (user?.bannerKey) {
-						try { await deletePhoto(user.bannerKey as string); } catch {}
-					}
-					const result = await uploadPhoto(bannerFile, 'banners');
-					updates.banner = result.url;
-					updates.bannerKey = result.key;
+				const result = await uploadPhoto(avatarFile, 'avatars');
+				sets.avatar = result.url;
+				sets.avatarKey = result.key;
+			} else if (needsRemoveAvatar) {
+				if (user?.avatarKey) {
+					try { await deletePhoto(user.avatarKey as string); } catch {}
 				}
+				unsets.avatar = '';
+				unsets.avatarKey = '';
+			}
 
+			if (hasBanner) {
+				if (user?.bannerKey) {
+					try { await deletePhoto(user.bannerKey as string); } catch {}
+				}
+				const result = await uploadPhoto(bannerFile, 'banners');
+				sets.banner = result.url;
+				sets.bannerKey = result.key;
+			} else if (needsRemoveBanner) {
+				if (user?.bannerKey) {
+					try { await deletePhoto(user.bannerKey as string); } catch {}
+				}
+				unsets.banner = '';
+				unsets.bannerKey = '';
+			}
+
+			const updateOp: Record<string, any> = {};
+			if (Object.keys(sets).length > 0) updateOp.$set = sets;
+			if (Object.keys(unsets).length > 0) updateOp.$unset = unsets;
+
+			if (Object.keys(updateOp).length > 0) {
 				await db.collection('user').updateOne(
 					{ _id: new ObjectId(session.user.id) },
-					{ $set: updates }
+					updateOp
 				);
+			}
 			}
 
 			return { success: 'Profile updated successfully.', tab: 'profile' };
