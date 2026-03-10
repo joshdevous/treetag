@@ -40,6 +40,12 @@ treeSchema.index({ species: 1 });
 treeSchema.index({ qrCodeId: 1 }, { unique: true });
 
 export type Tree = InferSchemaType<typeof treeSchema>;
-export const TreeModel =
-	(mongoose.models['Tree'] as mongoose.Model<Tree>) ||
-	mongoose.model<Tree>('Tree', treeSchema);
+const existingTreeModel = mongoose.models['Tree'] as mongoose.Model<Tree> | undefined;
+
+// In dev, HMR can keep an old compiled model in memory after schema changes.
+// If that stale model is missing the status path, recreate it so writes include status.
+export const TreeModel = existingTreeModel
+	? existingTreeModel.schema.path('status')
+		? existingTreeModel
+		: (mongoose.deleteModel('Tree'), mongoose.model<Tree>('Tree', treeSchema))
+	: mongoose.model<Tree>('Tree', treeSchema);

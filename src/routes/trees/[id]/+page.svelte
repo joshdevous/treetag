@@ -143,8 +143,8 @@
 		<div class="mb-6 flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
 			<CircleDashed size={18} class="mt-0.5 flex-shrink-0 text-amber-600" />
 			<div class="flex-1">
-				<p class="text-[14px] font-semibold text-amber-800">Pending Review</p>
-				<p class="mt-0.5 text-[13px] text-amber-600">This tree submission is awaiting admin approval and is not yet visible to the public.</p>
+				<p class="text-[14px] font-semibold text-amber-800">Pending Approval</p>
+				<p class="mt-0.5 text-[13px] text-amber-700">This tree has been submitted and is waiting for admin approval before it appears publicly.</p>
 				{#if data.isAdmin}
 					<div class="mt-3 flex gap-2">
 						<form method="POST" action="?/approve" use:enhance>
@@ -168,7 +168,7 @@
 			<ShieldX size={18} class="mt-0.5 flex-shrink-0 text-red-600" />
 			<div class="flex-1">
 				<p class="text-[14px] font-semibold text-red-800">Rejected</p>
-				<p class="mt-0.5 text-[13px] text-red-600">This tree submission was not approved and is not visible to the public.</p>
+				<p class="mt-0.5 text-[13px] text-red-700">This submission was not approved and remains hidden from public listings.</p>
 				{#if data.isAdmin}
 					<div class="mt-3">
 						<form method="POST" action="?/approve" use:enhance>

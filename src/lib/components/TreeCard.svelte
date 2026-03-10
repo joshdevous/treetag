@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { TreePine, MapPin, Heart, Tag } from 'lucide-svelte';
+	import { TreePine, MapPin, Heart, Tag, CircleDashed } from 'lucide-svelte';
 	import { Badge } from '$lib/components/ui/badge';
 
 	interface Props {
@@ -37,8 +37,9 @@
 			</div>
 		{/if}
 		{#if status === 'pending'}
-			<div class="absolute left-2.5 top-2.5 rounded-full bg-amber-500/90 px-2 py-1 text-[11px] font-semibold text-white shadow-sm backdrop-blur-sm">
-				Pending
+			<div class="absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-800 shadow-sm backdrop-blur-sm">
+				<CircleDashed size={11} />
+				Pending Approval
 			</div>
 		{:else if status === 'rejected'}
 			<div class="absolute left-2.5 top-2.5 rounded-full bg-red-500/90 px-2 py-1 text-[11px] font-semibold text-white shadow-sm backdrop-blur-sm">

@@ -1,9 +1,8 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
-	import { Search, TreePine, Filter, ChevronLeft, ChevronRight, LayoutGrid, Map as MapIcon, X } from 'lucide-svelte';
-	import { Button } from '$lib/components/ui/button';
-	import { Input } from '$lib/components/ui/input';
+	import { Search, TreePine, ChevronLeft, ChevronRight, LayoutGrid, Map as MapIcon, X, CircleDashed } from 'lucide-svelte';
+	import { Badge } from '$lib/components/ui/badge';
 	import TreeCard from '$lib/components/TreeCard.svelte';
 	import TreeMap from '$lib/components/TreeMap.svelte';
 
@@ -12,6 +11,7 @@
 	let searchValue = $state(data.filters.search);
 	let speciesValue = $state(data.filters.species);
 	let sortValue = $state(data.filters.sort);
+	let pendingOnly = $state(data.filters.pending);
 	let view = $state<'grid' | 'map'>('grid');
 	let searchTimeout: ReturnType<typeof setTimeout>;
 
@@ -34,6 +34,7 @@
 		if (searchValue) params.set('q', searchValue);
 		if (speciesValue) params.set('species', speciesValue);
 		if (sortValue && sortValue !== 'newest') params.set('sort', sortValue);
+		if (pendingOnly) params.set('pending', '1');
 		const qs = params.toString();
 		goto(`/trees${qs ? `?${qs}` : ''}`, { keepFocus: true });
 	}
@@ -47,7 +48,13 @@
 		searchValue = '';
 		speciesValue = '';
 		sortValue = 'newest';
+		pendingOnly = false;
 		goto('/trees');
+	}
+
+	function togglePending() {
+		pendingOnly = !pendingOnly;
+		applyFilters();
 	}
 
 	function goToPage(p: number) {
@@ -55,12 +62,13 @@
 		if (searchValue) params.set('q', searchValue);
 		if (speciesValue) params.set('species', speciesValue);
 		if (sortValue !== 'newest') params.set('sort', sortValue);
+		if (pendingOnly) params.set('pending', '1');
 		if (p > 1) params.set('page', p.toString());
 		const qs = params.toString();
 		goto(`/trees${qs ? `?${qs}` : ''}`);
 	}
 
-	const hasFilters = $derived(searchValue || speciesValue || sortValue !== 'newest');
+	const hasFilters = $derived(searchValue || speciesValue || sortValue !== 'newest' || pendingOnly);
 </script>
 
 <svelte:head>
@@ -97,8 +105,9 @@
 	</div>
 
 	<!-- Filters -->
-	<div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center">
-		<div class="relative flex-1 max-w-md">
+	<div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+		<div class="flex flex-1 flex-col gap-3 sm:flex-row sm:items-center">
+			<div class="relative flex-1 max-w-md">
 			<Search size={15} class="absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
 			<input
 				type="text"
@@ -107,37 +116,51 @@
 				oninput={handleSearch}
 				class="w-full rounded-[10px] border border-stone-200 bg-white py-2.5 pl-10 pr-3.5 text-[14px] text-stone-800 outline-none transition-colors placeholder:text-stone-300 focus:border-green-400 focus:ring-2 focus:ring-green-100"
 			/>
+			</div>
+
+			<select
+				bind:value={speciesValue}
+				onchange={applyFilters}
+				class="rounded-[10px] border border-stone-200 bg-white px-3.5 py-2.5 text-[13px] text-stone-600 outline-none transition-colors focus:border-green-400 focus:ring-2 focus:ring-green-100"
+			>
+				<option value="">All species</option>
+				{#each data.allSpecies as sp}
+					<option value={sp}>{sp}</option>
+				{/each}
+			</select>
+
+			<select
+				bind:value={sortValue}
+				onchange={applyFilters}
+				class="rounded-[10px] border border-stone-200 bg-white px-3.5 py-2.5 text-[13px] text-stone-600 outline-none transition-colors focus:border-green-400 focus:ring-2 focus:ring-green-100"
+			>
+				<option value="newest">Newest first</option>
+				<option value="oldest">Oldest first</option>
+				<option value="name">Name A–Z</option>
+				<option value="species">Species A–Z</option>
+			</select>
+
+			{#if hasFilters}
+				<button
+					onclick={clearFilters}
+					class="inline-flex items-center gap-1.5 rounded-[10px] px-3 py-2.5 text-[13px] font-medium text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-600"
+				>
+					<X size={14} />
+					Clear
+				</button>
+			{/if}
 		</div>
 
-		<select
-			bind:value={speciesValue}
-			onchange={applyFilters}
-			class="rounded-[10px] border border-stone-200 bg-white px-3.5 py-2.5 text-[13px] text-stone-600 outline-none transition-colors focus:border-green-400 focus:ring-2 focus:ring-green-100"
-		>
-			<option value="">All species</option>
-			{#each data.allSpecies as sp}
-				<option value={sp}>{sp}</option>
-			{/each}
-		</select>
-
-		<select
-			bind:value={sortValue}
-			onchange={applyFilters}
-			class="rounded-[10px] border border-stone-200 bg-white px-3.5 py-2.5 text-[13px] text-stone-600 outline-none transition-colors focus:border-green-400 focus:ring-2 focus:ring-green-100"
-		>
-			<option value="newest">Newest first</option>
-			<option value="oldest">Oldest first</option>
-			<option value="name">Name A–Z</option>
-			<option value="species">Species A–Z</option>
-		</select>
-
-		{#if hasFilters}
+		{#if data.isLoggedIn}
 			<button
-				onclick={clearFilters}
-				class="inline-flex items-center gap-1.5 rounded-[10px] px-3 py-2.5 text-[13px] font-medium text-stone-400 transition-colors hover:bg-stone-100 hover:text-stone-600"
+				onclick={togglePending}
+				class="inline-flex items-center gap-2 rounded-[10px] border px-3.5 py-2 text-[13px] font-medium transition-colors {pendingOnly ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-stone-200 bg-white text-stone-600 hover:border-amber-300 hover:bg-amber-50 hover:text-amber-800'}"
 			>
-				<X size={14} />
-				Clear
+				<CircleDashed size={14} />
+				Pending Trees
+				<Badge variant="secondary" class="rounded-full bg-white/80 px-1.5 py-0 text-[11px] font-semibold text-stone-700">
+					{data.pendingCount}
+				</Badge>
 			</button>
 		{/if}
 	</div>

@@ -9,17 +9,29 @@ export const load: PageServerLoad = async ({ url, request }) => {
 
 	const session = await auth.api.getSession({ headers: request.headers });
 	const isAdmin = (session?.user as any)?.role === 'admin';
+	const userId = session?.user?.id ?? null;
 
 	const search = url.searchParams.get('q')?.trim() ?? '';
 	const species = url.searchParams.get('species')?.trim() ?? '';
 	const sort = url.searchParams.get('sort') ?? 'newest';
+	const pendingOnly = url.searchParams.get('pending') === '1';
 	const pageNum = Math.max(1, parseInt(url.searchParams.get('page') ?? '1'));
 	const perPage = 12;
 
 	// Build filter
 	const filter: Record<string, any> = {};
-	// Only admins see all trees; everyone else sees only approved
-	if (!isAdmin) {
+
+	if (pendingOnly) {
+		if (isAdmin) {
+			filter.status = 'pending';
+		} else if (userId) {
+			filter.status = 'pending';
+			filter.createdBy = userId;
+		} else {
+			filter._id = null;
+		}
+	} else if (!isAdmin) {
+		// Non-admin default view only includes approved/existing trees
 		filter.status = { $in: ['approved', null] };
 	}
 	if (search) {
@@ -40,7 +52,21 @@ export const load: PageServerLoad = async ({ url, request }) => {
 	if (sort === 'name') sortObj = { name: 1 };
 	if (sort === 'species') sortObj = { species: 1 };
 
-	const [trees, total, allSpecies] = await Promise.all([
+	const pendingCountFilter = isAdmin
+		? { status: 'pending' }
+		: userId
+			? { status: 'pending', createdBy: userId }
+			: { _id: null };
+
+	const speciesFilter = pendingOnly
+		? isAdmin
+			? { status: 'pending' }
+			: { status: 'pending', createdBy: userId }
+		: isAdmin
+			? {}
+			: { status: 'approved' };
+
+	const [trees, total, allSpecies, pendingCount] = await Promise.all([
 		TreeModel.find(filter)
 			.sort(sortObj)
 			.skip((pageNum - 1) * perPage)
@@ -48,7 +74,8 @@ export const load: PageServerLoad = async ({ url, request }) => {
 			.populate('photos')
 			.lean(),
 		TreeModel.countDocuments(filter),
-		TreeModel.distinct('species', isAdmin ? {} : { status: 'approved' })
+		TreeModel.distinct('species', speciesFilter),
+		TreeModel.countDocuments(pendingCountFilter)
 	]);
 
 	return {
@@ -68,11 +95,14 @@ export const load: PageServerLoad = async ({ url, request }) => {
 				status: (t as any).status ?? 'approved'
 			};
 		}),
+		pendingCount,
+		isAdmin,
+		isLoggedIn: !!session?.user,
 		total,
 		page: pageNum,
 		perPage,
 		totalPages: Math.ceil(total / perPage),
 		allSpecies: allSpecies.sort(),
-		filters: { search, species, sort }
+		filters: { search, species, sort, pending: pendingOnly }
 	};
 };
