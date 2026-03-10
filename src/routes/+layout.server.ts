@@ -2,7 +2,11 @@ import { auth } from '$lib/server/auth';
 import { connectDB } from '$lib/server/db';
 import { LevelModel } from '$lib/server/db/models/level';
 import { DEFAULT_LEVELS, type LevelConfig } from '$lib/levels';
+import { MongoClient } from 'mongodb';
+import { DATABASE_URL } from '$env/static/private';
 import type { LayoutServerLoad } from './$types';
+
+const client = new MongoClient(DATABASE_URL);
 
 export const load: LayoutServerLoad = async ({ request }) => {
 	const session = await auth.api.getSession({ headers: request.headers });
@@ -24,9 +28,25 @@ export const load: LayoutServerLoad = async ({ request }) => {
 		levels = DEFAULT_LEVELS;
 	}
 
+	// Fetch avatar/banner from MongoDB (not stored in better-auth session)
+	let avatar: string | null = null;
+	let banner: string | null = null;
+	if (session?.user) {
+		try {
+			const { ObjectId } = await import('mongodb');
+			const db = client.db('treetag');
+			const dbUser = await db.collection('user').findOne(
+				{ _id: new ObjectId(session.user.id) },
+				{ projection: { avatar: 1, banner: 1 } }
+			);
+			avatar = (dbUser?.avatar as string) ?? null;
+			banner = (dbUser?.banner as string) ?? null;
+		} catch {}
+	}
+
 	return {
 		session: session?.session ?? null,
-		user: session?.user ?? null,
+		user: session?.user ? { ...session.user, avatar, banner } : null,
 		levels
 	};
 };

@@ -90,9 +90,13 @@
 								class="flex cursor-pointer items-center gap-2 rounded-full py-1 pl-1 pr-2.5 transition-colors hover:bg-stone-100"
 							>
 								<div
-									class="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-green-600 to-emerald-500 text-[11px] font-bold text-white"
+									class="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-green-600 to-emerald-500 text-[11px] font-bold text-white overflow-hidden"
 								>
-									{getInitials(data.user.name)}
+									{#if (data.user as any).avatar}
+										<img src={(data.user as any).avatar} alt={data.user.name} class="h-full w-full object-cover" />
+									{:else}
+										{getInitials(data.user.name)}
+									{/if}
 								</div>
 								<span class="hidden text-[13px] font-medium text-stone-700 sm:block"
 									>{data.user.name}</span
