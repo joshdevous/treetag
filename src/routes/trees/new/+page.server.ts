@@ -7,6 +7,35 @@ import { uploadPhoto } from '$lib/server/r2';
 import crypto from 'crypto';
 import type { PageServerLoad, Actions } from './$types';
 
+function parsePlantedDateInput(value: string): Date | null {
+	const text = value.trim();
+	if (!text) return null;
+
+	const dmy = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+	if (dmy) {
+		const day = Number(dmy[1]);
+		const month = Number(dmy[2]);
+		const year = Number(dmy[3]);
+		const d = new Date(year, month - 1, day);
+		if (d.getFullYear() === year && d.getMonth() === month - 1 && d.getDate() === day) return d;
+		return null;
+	}
+
+	const ymd = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+	if (ymd) {
+		const year = Number(ymd[1]);
+		const month = Number(ymd[2]);
+		const day = Number(ymd[3]);
+		const d = new Date(year, month - 1, day);
+		if (d.getFullYear() === year && d.getMonth() === month - 1 && d.getDate() === day) return d;
+		return null;
+	}
+
+	const fallback = new Date(text);
+	if (isNaN(fallback.getTime())) return null;
+	return fallback;
+}
+
 export const load: PageServerLoad = async ({ request }) => {
 	const session = await auth.api.getSession({ headers: request.headers });
 	if (!session?.user) throw redirect(303, '/auth/login');
@@ -29,6 +58,7 @@ export const actions: Actions = {
 		const trunkDiameter = form.get('trunkDiameter')?.toString().trim();
 		const plantedDate = form.get('plantedDate')?.toString().trim();
 		const plantedBy = form.get('plantedBy')?.toString().trim();
+		const postcode = form.get('postcode')?.toString().trim();
 		const latitude = form.get('latitude')?.toString().trim();
 		const longitude = form.get('longitude')?.toString().trim();
 		const address = form.get('address')?.toString().trim();
@@ -46,7 +76,8 @@ export const actions: Actions = {
 		if (name.length > 100) return fail(400, { error: 'Name must be 100 characters or less.', field: 'name' });
 		if (species.length > 100) return fail(400, { error: 'Species must be 100 characters or less.', field: 'species' });
 		if (description && description.length > 2000) return fail(400, { error: 'Description must be 2,000 characters or less.', field: 'description' });
-		if (address && address.length > 200) return fail(400, { error: 'Address must be 200 characters or less.', field: 'address' });
+		const combinedAddress = [address, postcode].filter(Boolean).join(', ');
+		if (combinedAddress && combinedAddress.length > 200) return fail(400, { error: 'Address must be 200 characters or less.', field: 'address' });
 		if (plantedBy && plantedBy.length > 100) return fail(400, { error: 'Planted by must be 100 characters or less.', field: 'plantedBy' });
 
 		// Numeric validation
@@ -64,10 +95,11 @@ export const actions: Actions = {
 		}
 
 		// Planted date cannot be in the future
+		let parsedPlantedDate: Date | null = null;
 		if (plantedDate) {
-			const pd = new Date(plantedDate);
-			if (isNaN(pd.getTime())) return fail(400, { error: 'Invalid planted date.', field: 'plantedDate' });
-			if (pd > new Date()) return fail(400, { error: 'Planted date cannot be in the future.', field: 'plantedDate' });
+			parsedPlantedDate = parsePlantedDateInput(plantedDate);
+			if (!parsedPlantedDate) return fail(400, { error: 'Invalid planted date. Use DD/MM/YYYY.', field: 'plantedDate' });
+			if (parsedPlantedDate > new Date()) return fail(400, { error: 'Planted date cannot be in the future.', field: 'plantedDate' });
 		}
 
 		// Coordinate validation
@@ -129,12 +161,12 @@ export const actions: Actions = {
 				estimatedAge: estimatedAge ? parseInt(estimatedAge) : undefined,
 				height: height ? parseFloat(height) : undefined,
 				trunkDiameter: trunkDiameter ? parseFloat(trunkDiameter) : undefined,
-				plantedDate: plantedDate ? new Date(plantedDate) : undefined,
+				plantedDate: parsedPlantedDate ?? undefined,
 				plantedBy: plantedBy || undefined,
 				location: {
 					type: 'Point',
 					coordinates: [lng, lat],
-					address: address || undefined
+					address: combinedAddress || undefined
 				},
 				qrCodeId,
 				photos: photoIds,

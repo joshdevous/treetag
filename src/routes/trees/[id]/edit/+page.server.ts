@@ -6,6 +6,42 @@ import { PhotoModel } from '$lib/server/db/models/photo';
 import { uploadPhoto, deletePhoto } from '$lib/server/r2';
 import type { PageServerLoad, Actions } from './$types';
 
+function formatDateForDisplay(date: Date): string {
+	const day = String(date.getDate()).padStart(2, '0');
+	const month = String(date.getMonth() + 1).padStart(2, '0');
+	const year = String(date.getFullYear()).padStart(4, '0');
+	return `${day}/${month}/${year}`;
+}
+
+function parsePlantedDateInput(value: string): Date | null {
+	const text = value.trim();
+	if (!text) return null;
+
+	const dmy = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+	if (dmy) {
+		const day = Number(dmy[1]);
+		const month = Number(dmy[2]);
+		const year = Number(dmy[3]);
+		const d = new Date(year, month - 1, day);
+		if (d.getFullYear() === year && d.getMonth() === month - 1 && d.getDate() === day) return d;
+		return null;
+	}
+
+	const ymd = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+	if (ymd) {
+		const year = Number(ymd[1]);
+		const month = Number(ymd[2]);
+		const day = Number(ymd[3]);
+		const d = new Date(year, month - 1, day);
+		if (d.getFullYear() === year && d.getMonth() === month - 1 && d.getDate() === day) return d;
+		return null;
+	}
+
+	const fallback = new Date(text);
+	if (isNaN(fallback.getTime())) return null;
+	return fallback;
+}
+
 export const load: PageServerLoad = async ({ params, request }) => {
 	const session = await auth.api.getSession({ headers: request.headers });
 	if (!session?.user) throw redirect(303, '/auth/login');
@@ -31,7 +67,7 @@ export const load: PageServerLoad = async ({ params, request }) => {
 			name: tree.name,
 			species: tree.species,
 			estimatedAge: tree.estimatedAge ?? null,
-			plantedDate: tree.plantedDate?.toISOString().split('T')[0] ?? '',
+			plantedDate: tree.plantedDate ? formatDateForDisplay(tree.plantedDate) : '',
 			plantedBy: tree.plantedBy ?? '',
 			height: tree.height ?? null,
 			trunkDiameter: tree.trunkDiameter ?? null,
@@ -92,6 +128,13 @@ export const actions: Actions = {
 		const lng = parseFloat(longitude!);
 		if (isNaN(lat) || isNaN(lng)) return fail(400, { error: 'Invalid coordinates.' });
 
+		let parsedPlantedDate: Date | null = null;
+		if (plantedDate) {
+			parsedPlantedDate = parsePlantedDateInput(plantedDate);
+			if (!parsedPlantedDate) return fail(400, { error: 'Invalid planted date. Use DD/MM/YYYY.' });
+			if (parsedPlantedDate > new Date()) return fail(400, { error: 'Planted date cannot be in the future.' });
+		}
+
 		await connectDB();
 
 		// Remove photos
@@ -127,7 +170,7 @@ export const actions: Actions = {
 				estimatedAge: estimatedAge ? parseInt(estimatedAge) : undefined,
 				height: height ? parseFloat(height) : undefined,
 				trunkDiameter: trunkDiameter ? parseFloat(trunkDiameter) : undefined,
-				plantedDate: plantedDate ? new Date(plantedDate) : undefined,
+				plantedDate: parsedPlantedDate ?? undefined,
 				plantedBy: plantedBy || undefined,
 				location: {
 					type: 'Point',

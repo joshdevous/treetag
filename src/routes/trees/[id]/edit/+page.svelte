@@ -21,6 +21,7 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Separator } from '$lib/components/ui/separator';
 	import * as AlertDialog from '$lib/components/ui/alert-dialog';
+	import DateInput from '$lib/components/DateInput.svelte';
 
 	let { data, form } = $props();
 
@@ -171,6 +172,8 @@
 		}}
 		class="space-y-8"
 	>
+		<input type="hidden" name="plantedDate" value={plantedDate} />
+
 		<!-- Basic Info -->
 		<section class="space-y-5">
 			<div class="flex items-center gap-2 text-[13px] font-semibold text-stone-500 uppercase tracking-wider">
@@ -234,9 +237,7 @@
 			<div class="grid gap-5 sm:grid-cols-2">
 				<div>
 					<Label for="plantedDate" class="mb-1.5 text-[13px] font-medium text-stone-600">Planted Date</Label>
-					<Input id="plantedDate" name="plantedDate" type="date" bind:value={plantedDate}
-						class="h-auto rounded-[10px] border-stone-200 bg-white px-3.5 py-2.5 text-[14px] text-stone-800 focus-visible:border-green-400 focus-visible:ring-green-100"
-					/>
+					<DateInput id="plantedDate" bind:value={plantedDate} maxToday={true} />
 				</div>
 				<div>
 					<Label for="plantedBy" class="mb-1.5 text-[13px] font-medium text-stone-600">Planted By</Label>
