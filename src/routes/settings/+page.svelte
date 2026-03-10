@@ -222,7 +222,7 @@
 			<div>
 				<Label class="mb-1.5 text-[13px] font-medium text-stone-600">Banner</Label>
 				<DropdownMenu.Root>
-					<DropdownMenu.Trigger class="relative block w-full cursor-pointer overflow-hidden rounded-xl border border-stone-200 h-40 transition-all hover:border-green-400 hover:ring-2 hover:ring-green-100 group">
+					<DropdownMenu.Trigger class="relative block w-full cursor-pointer overflow-hidden rounded-xl border border-stone-200 aspect-[3/1] sm:aspect-[6/1] transition-all hover:border-green-400 hover:ring-2 hover:ring-green-100 group">
 						{#if bannerPreview}
 							<img src={bannerPreview} alt="Banner preview" class="h-full w-full object-cover" />
 						{:else if (user as any).banner && !removeBanner}
@@ -232,8 +232,8 @@
 								<Image size={32} class="text-white/40" />
 							</div>
 						{/if}
-						<div class="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/30">
-							<div class="flex items-center gap-1.5 rounded-lg bg-white/90 px-3 py-1.5 text-[12px] font-medium text-stone-600 opacity-0 shadow-sm backdrop-blur-sm transition-opacity group-hover:opacity-100">
+						<div class="absolute inset-0 flex items-center justify-center bg-black/20 transition-colors sm:bg-black/0 sm:group-hover:bg-black/30">
+							<div class="flex items-center gap-1.5 rounded-lg bg-white/90 px-3 py-1.5 text-[12px] font-medium text-stone-600 shadow-sm backdrop-blur-sm transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
 								<Camera size={13} /> {hasBanner ? 'Change banner' : 'Upload banner'}
 							</div>
 						</div>
@@ -268,8 +268,8 @@
 									{getInitials(user.name)}
 								</div>
 							{/if}
-							<div class="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 transition-colors group-hover:bg-black/30">
-								<Camera size={16} class="text-white opacity-0 transition-opacity group-hover:opacity-100" />
+							<div class="absolute inset-0 flex items-center justify-center rounded-full bg-black/20 transition-colors sm:bg-black/0 sm:group-hover:bg-black/30">
+								<Camera size={16} class="text-white transition-opacity sm:opacity-0 sm:group-hover:opacity-100" />
 							</div>
 						</DropdownMenu.Trigger>
 						<DropdownMenu.Content class="w-44">
