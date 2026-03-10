@@ -34,12 +34,12 @@
 	}
 </script>
 
+<Toaster richColors position="bottom-center" />
+
 {#if $page.url.pathname.startsWith('/auth/')}
-	<Toaster richColors position="bottom-center" />
 	{@render children()}
 {:else}
 	<div class="flex min-h-screen flex-col">
-		<Toaster richColors position="bottom-center" />
 		<header class="sticky top-0 z-50 border-b border-stone-200/60 bg-white/70 backdrop-blur-md">
 			<nav class="mx-auto flex h-14 max-w-7xl items-center justify-between px-6">
 				<a href="/" class="flex items-center gap-2.5">
