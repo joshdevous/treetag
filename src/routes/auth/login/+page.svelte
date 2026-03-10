@@ -79,9 +79,9 @@
 
 	<!-- Forgot password -->
 	<div class="text-right -mt-2 mb-5">
-		<button type="button" class="text-xs font-medium text-green-600 hover:underline bg-transparent border-none cursor-pointer">
+		<a href="/auth/forgot-password" class="text-xs font-medium text-green-600 hover:underline">
 			Forgot password?
-		</button>
+		</a>
 	</div>
 
 	<!-- Submit -->

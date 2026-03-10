@@ -37,6 +37,7 @@
 		"lucide-svelte": "^0.577.0",
 		"mongoose": "^9.2.4",
 		"qrcode": "^1.5.4",
+		"resend": "^6.9.3",
 		"svelte-sonner": "^1.1.0",
 		"tailwind-merge": "^3.5.0",
 		"tailwindcss": "^4.2.1"

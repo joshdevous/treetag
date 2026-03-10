@@ -17,6 +17,10 @@
 	let { children, data } = $props();
 
 	const isLogin = $derived($page.url.pathname === '/auth/login');
+	const isPasswordFlow = $derived(
+		$page.url.pathname.startsWith('/auth/forgot-password') ||
+		$page.url.pathname.startsWith('/auth/reset-password')
+	);
 </script>
 
 <svelte:head>
@@ -102,13 +106,15 @@
 			</div>
 
 			<h2 class="panel-heading">
-				{isLogin ? 'Welcome back, Guardian' : 'Join the Guardians'}
+				{isPasswordFlow ? 'Account Recovery' : isLogin ? 'Welcome back, Guardian' : 'Join the Guardians'}
 			</h2>
 
 			<p class="panel-subtext">
-				{isLogin
-					? 'Your trees missed you. Log in to check on your canopy and see what the community has been up to.'
-					: 'Discover, tag, and care for the trees of Charlton Kings. Every tree has a story — help us tell it.'}
+				{isPasswordFlow
+					? 'No worries — it happens to the best of us. We\'ll get you back to your trees in no time.'
+					: isLogin
+						? 'Your trees missed you. Log in to check on your canopy and see what the community has been up to.'
+						: 'Discover, tag, and care for the trees of Charlton Kings. Every tree has a story — help us tell it.'}
 			</p>
 
 			<!-- Stats -->
@@ -147,13 +153,13 @@
 			</a>
 
 			<div class="text-[13px] text-stone-400">
-				{isLogin ? 'No account? ' : 'Already have an account? '}
-				<a
-					href={isLogin ? '/auth/register' : '/auth/login'}
-					class="text-green-600 font-semibold hover:underline"
-				>
-					{isLogin ? 'Sign up' : 'Log in'}
-				</a>
+				{#if isPasswordFlow}
+					Remember it? <a href="/auth/login" class="text-green-600 font-semibold hover:underline">Log in</a>
+				{:else if isLogin}
+					No account? <a href="/auth/register" class="text-green-600 font-semibold hover:underline">Sign up</a>
+				{:else}
+					Already have an account? <a href="/auth/login" class="text-green-600 font-semibold hover:underline">Log in</a>
+				{/if}
 			</div>
 		</div>
 
