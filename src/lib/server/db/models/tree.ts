@@ -31,7 +31,7 @@ const treeSchema = new Schema(
 		iNaturalistId: String,
 		createdBy: { type: String, required: true } // better-auth user ID
 	},
-	{ timestamps: true }
+	{ timestamps: true, versionKey: false }
 );
 
 treeSchema.index({ location: '2dsphere' });

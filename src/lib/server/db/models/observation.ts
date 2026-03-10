@@ -24,7 +24,7 @@ const observationSchema = new Schema(
 		},
 		pointsAwarded: { type: Number, default: 0 }
 	},
-	{ timestamps: true }
+	{ timestamps: true, versionKey: false }
 );
 
 observationSchema.index({ tree: 1, createdAt: -1 });

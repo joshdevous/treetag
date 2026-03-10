@@ -1,5 +1,6 @@
 import { betterAuth } from 'better-auth';
 import { mongodbAdapter } from 'better-auth/adapters/mongodb';
+import { username } from 'better-auth/plugins';
 import { MongoClient } from 'mongodb';
 import { DATABASE_URL, BETTER_AUTH_SECRET, APP_URL } from '$env/static/private';
 
@@ -17,7 +18,7 @@ export const auth = betterAuth({
 		additionalFields: {
 			role: {
 				type: 'string',
-				defaultValue: 'user',
+				defaultValue: 'guardian',
 				required: false,
 				input: false
 			},
@@ -29,6 +30,7 @@ export const auth = betterAuth({
 			}
 		}
 	},
+	plugins: [username()],
 	trustedOrigins: [APP_URL ?? 'http://localhost:5173']
 });
 

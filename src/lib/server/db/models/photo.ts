@@ -9,7 +9,7 @@ const photoSchema = new Schema(
 		tree: { type: Schema.Types.ObjectId, ref: 'Tree' },
 		observation: { type: Schema.Types.ObjectId, ref: 'Observation' }
 	},
-	{ timestamps: true }
+	{ timestamps: true, versionKey: false }
 );
 
 export type Photo = InferSchemaType<typeof photoSchema>;
