@@ -420,7 +420,7 @@
 		<h2 class="mb-2 text-xl font-bold tracking-tight text-stone-900">How Treetag Works</h2>
 		<p class="mb-8 text-[13px] text-stone-400">Three steps to becoming a Tree Guardian</p>
 
-		<div class="flex flex-wrap items-center justify-center gap-0">
+		<div class="flex flex-wrap items-stretch justify-center gap-0">
 			{#each [
 				{
 					step: '1',
