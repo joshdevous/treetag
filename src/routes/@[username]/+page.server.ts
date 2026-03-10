@@ -39,7 +39,9 @@ export const load: PageServerLoad = async ({ params, request }) => {
 			username: profileUser.username as string,
 			role: (profileUser.role as string) ?? 'guardian',
 			points: (profileUser.points as number) ?? 0,
-			createdAt: profileUser.createdAt?.toString() ?? null
+			createdAt: profileUser.createdAt?.toString() ?? null,
+			avatar: (profileUser.avatar as string) ?? null,
+			banner: (profileUser.banner as string) ?? null
 		},
 		isOwnProfile,
 		adoptedTrees: adoptedTrees.map((t) => ({

@@ -1,6 +1,11 @@
 import { redirect } from '@sveltejs/kit';
 import { auth } from '$lib/server/auth';
+import { uploadPhoto, deletePhoto } from '$lib/server/r2';
+import { MongoClient, ObjectId } from 'mongodb';
+import { DATABASE_URL } from '$env/static/private';
 import type { PageServerLoad, Actions } from './$types';
+
+const client = new MongoClient(DATABASE_URL);
 
 export const load: PageServerLoad = async ({ request }) => {
 	const session = await auth.api.getSession({ headers: request.headers });
@@ -16,6 +21,8 @@ export const actions: Actions = {
 		const form = await request.formData();
 		const name = form.get('name')?.toString().trim();
 		const username = form.get('username')?.toString().trim();
+		const avatarFile = form.get('avatar') as File | null;
+		const bannerFile = form.get('banner') as File | null;
 
 		if (!name || !username) {
 			return { error: 'Name and username are required.', tab: 'profile' };
@@ -29,9 +36,74 @@ export const actions: Actions = {
 				headers: request.headers,
 				body: { name, username }
 			});
+
+			// Handle image uploads
+			const hasAvatar = avatarFile && avatarFile.size > 0;
+			const hasBanner = bannerFile && bannerFile.size > 0;
+
+			if (hasAvatar || hasBanner) {
+				const db = client.db('treetag');
+				const user = await db.collection('user').findOne({ _id: new ObjectId(session.user.id) });
+				const updates: Record<string, string> = {};
+
+				if (hasAvatar) {
+					if (user?.avatarKey) {
+						try { await deletePhoto(user.avatarKey as string); } catch {}
+					}
+					const result = await uploadPhoto(avatarFile, 'avatars');
+					updates.avatar = result.url;
+					updates.avatarKey = result.key;
+				}
+
+				if (hasBanner) {
+					if (user?.bannerKey) {
+						try { await deletePhoto(user.bannerKey as string); } catch {}
+					}
+					const result = await uploadPhoto(bannerFile, 'banners');
+					updates.banner = result.url;
+					updates.bannerKey = result.key;
+				}
+
+				await db.collection('user').updateOne(
+					{ _id: new ObjectId(session.user.id) },
+					{ $set: updates }
+				);
+			}
+
 			return { success: 'Profile updated successfully.', tab: 'profile' };
 		} catch (e: any) {
 			return { error: e?.message ?? 'Failed to update profile.', tab: 'profile' };
+		}
+	},
+
+	removeImage: async ({ request }) => {
+		const session = await auth.api.getSession({ headers: request.headers });
+		if (!session?.user) return { error: 'Not authenticated' };
+
+		const form = await request.formData();
+		const type = form.get('type')?.toString();
+
+		if (type !== 'avatar' && type !== 'banner') {
+			return { error: 'Invalid image type.', tab: 'profile' };
+		}
+
+		try {
+			const db = client.db('treetag');
+			const user = await db.collection('user').findOne({ _id: new ObjectId(session.user.id) });
+			const keyField = type === 'avatar' ? 'avatarKey' : 'bannerKey';
+
+			if (user?.[keyField]) {
+				try { await deletePhoto(user[keyField] as string); } catch {}
+			}
+
+			await db.collection('user').updateOne(
+				{ _id: new ObjectId(session.user.id) },
+				{ $unset: { [type]: '', [keyField]: '' } }
+			);
+
+			return { success: `${type === 'avatar' ? 'Profile picture' : 'Banner'} removed.`, tab: 'profile' };
+		} catch (e: any) {
+			return { error: e?.message ?? 'Failed to remove image.', tab: 'profile' };
 		}
 	},
 

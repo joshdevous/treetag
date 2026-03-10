@@ -22,6 +22,44 @@
 
 	let { data } = $props();
 
+	// Animated counter state
+	let animatedStats = $state({
+		trees: 0,
+		observations: 0,
+		points: 0
+	});
+
+	$effect(() => {
+		const targets = {
+			trees: data.adoptedTrees.length,
+			observations: data.observationCount,
+			points: data.profileUser.points
+		};
+
+		const duration = 1600;
+		const start = performance.now();
+
+		function ease(t: number) {
+			return 1 - Math.pow(1 - t, 3); // easeOutCubic
+		}
+
+		function tick(now: number) {
+			const elapsed = now - start;
+			const progress = Math.min(elapsed / duration, 1);
+			const eased = ease(progress);
+
+			animatedStats.trees = Math.round(eased * targets.trees);
+			animatedStats.observations = Math.round(eased * targets.observations);
+			animatedStats.points = Math.round(eased * targets.points);
+
+			if (progress < 1) {
+				requestAnimationFrame(tick);
+			}
+		}
+
+		requestAnimationFrame(tick);
+	});
+
 	const levels = $derived(($page.data as any).levels as LevelConfig[]);
 	const pUser = $derived(data.profileUser);
 
@@ -79,30 +117,42 @@
 	<!-- Header card -->
 	<div class="relative overflow-hidden rounded-2xl border border-stone-200 bg-white">
 		<!-- Top gradient banner -->
-		<div class="h-24 bg-gradient-to-br from-green-600/90 via-emerald-500/80 to-teal-400/70"></div>
+		{#if pUser.banner}
+			<div class="h-48">
+				<img src={pUser.banner} alt="Banner" class="h-full w-full object-cover" />
+			</div>
+		{:else}
+			<div class="h-48 bg-gradient-to-br from-green-600/90 via-emerald-500/80 to-teal-400/70"></div>
+		{/if}
 
 		<div class="px-6 pb-6">
-			<!-- Avatar + info row -->
-			<div class="flex items-end gap-4 -mt-10">
-				<div
-					class="flex h-20 w-20 shrink-0 items-center justify-center rounded-full border-4 border-white bg-gradient-to-br from-green-600 to-emerald-500 text-2xl font-bold text-white shadow-md"
-				>
-					{getInitials(pUser.name)}
-				</div>
-				<div class="flex flex-1 items-start justify-between pb-1">
-					<div>
-						<h1 class="text-xl font-bold text-stone-900">{pUser.name}</h1>
-						<p class="text-[13px] text-stone-400">@{pUser.username}</p>
+			<!-- Avatar (overlaps banner) -->
+			<div class="-mt-16">
+				{#if pUser.avatar}
+					<img src={pUser.avatar} alt={pUser.name} class="h-24 w-24 shrink-0 rounded-full border-4 border-white object-cover" />
+				{:else}
+					<div
+						class="flex h-24 w-24 shrink-0 items-center justify-center rounded-full border-4 border-white bg-gradient-to-br from-green-600 to-emerald-500 text-3xl font-bold text-white"
+					>
+						{getInitials(pUser.name)}
 					</div>
-					{#if data.isOwnProfile}
-						<a
-							href="/settings"
-							class="flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-1.5 text-[12px] font-medium text-stone-500 transition-colors hover:bg-stone-50 hover:text-stone-700"
-						>
-							<Settings size={13} /> Edit Profile
-						</a>
-					{/if}
+				{/if}
+			</div>
+
+			<!-- Name + edit button row (below avatar, no overlap) -->
+			<div class="mt-3 flex items-start justify-between">
+				<div>
+					<h1 class="text-xl font-bold text-stone-900">{pUser.name}</h1>
+					<p class="text-[13px] text-stone-400">@{pUser.username}</p>
 				</div>
+				{#if data.isOwnProfile}
+					<a
+						href="/settings"
+						class="flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-1.5 text-[12px] font-medium text-stone-500 transition-colors hover:bg-stone-50 hover:text-stone-700"
+					>
+						<Settings size={13} /> Edit Profile
+					</a>
+				{/if}
 			</div>
 
 			<!-- Badges row -->
@@ -145,27 +195,31 @@
 
 	<!-- Stats row -->
 	<div class="mt-6 grid grid-cols-3 gap-3">
-		<div class="rounded-xl border border-green-100 bg-green-50/50 p-4 text-center">
-			<div class="flex items-center justify-center gap-2">
-				<TreePine size={17} class="text-green-600" />
-				<span class="text-2xl font-bold text-green-700">{data.adoptedTrees.length}</span>
+		{#each [
+			{ icon: TreePine, value: animatedStats.trees, label: 'Trees Adopted', color: 'green' },
+			{ icon: Eye, value: animatedStats.observations, label: 'Observations', color: 'violet' },
+			{ icon: Award, value: animatedStats.points, label: 'Points Earned', color: 'amber' }
+		] as stat}
+			{@const Icon = stat.icon}
+			{@const colorMap = {
+				green: { border: 'border-green-200/60', bg: 'bg-green-50/40', num: 'text-green-800', icon: 'text-green-600/70', label: 'text-green-700/60' },
+				violet: { border: 'border-violet-200/60', bg: 'bg-violet-50/40', num: 'text-violet-800', icon: 'text-violet-600/70', label: 'text-violet-700/60' },
+				amber: { border: 'border-amber-200/60', bg: 'bg-amber-50/40', num: 'text-amber-800', icon: 'text-amber-600/70', label: 'text-amber-700/60' }
+			}}
+			{@const colors = colorMap[stat.color as keyof typeof colorMap]}
+			<div class="rounded-xl border {colors.border} {colors.bg} backdrop-blur-sm px-4 py-3.5 text-center">
+				<div
+					class="text-2xl font-bold {colors.num}"
+					style="font-family: 'Space Mono', monospace;"
+				>
+					{stat.value}
+				</div>
+				<div class="mt-1.5 flex items-center justify-center gap-1.5 {colors.label}">
+					<span class="shrink-0"><Icon size={14} strokeWidth={2} /></span>
+					<span class="text-[10px] font-bold uppercase tracking-wider">{stat.label}</span>
+				</div>
 			</div>
-			<p class="mt-1 text-[11px] font-medium uppercase tracking-wider text-green-600/60">Trees Adopted</p>
-		</div>
-		<div class="rounded-xl border border-violet-100 bg-violet-50/50 p-4 text-center">
-			<div class="flex items-center justify-center gap-2">
-				<Eye size={17} class="text-violet-600" />
-				<span class="text-2xl font-bold text-violet-700">{data.observationCount}</span>
-			</div>
-			<p class="mt-1 text-[11px] font-medium uppercase tracking-wider text-violet-600/60">Observations</p>
-		</div>
-		<div class="rounded-xl border border-amber-100 bg-amber-50/50 p-4 text-center">
-			<div class="flex items-center justify-center gap-2">
-				<Award size={17} class="text-amber-600" />
-				<span class="text-2xl font-bold text-amber-700">{pUser.points}</span>
-			</div>
-			<p class="mt-1 text-[11px] font-medium uppercase tracking-wider text-amber-600/60">Points Earned</p>
-		</div>
+		{/each}
 	</div>
 
 	<!-- Adopted Trees -->
