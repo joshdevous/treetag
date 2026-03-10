@@ -121,11 +121,11 @@
 	<div class="relative overflow-hidden rounded-2xl border border-stone-200 bg-white">
 		<!-- Top gradient banner -->
 		{#if pUser.banner}
-			<div class="aspect-[6/1] w-full">
+			<div class="aspect-[3/1] w-full sm:aspect-[6/1]">
 				<img src={pUser.banner} alt="Banner" class="h-full w-full object-cover" />
 			</div>
 		{:else}
-			<div class="aspect-[6/1] w-full bg-gradient-to-br from-green-600/90 via-emerald-500/80 to-teal-400/70"></div>
+			<div class="aspect-[3/1] w-full sm:aspect-[6/1] bg-gradient-to-br from-green-600/90 via-emerald-500/80 to-teal-400/70"></div>
 		{/if}
 
 		<div class="px-6 pb-6">
