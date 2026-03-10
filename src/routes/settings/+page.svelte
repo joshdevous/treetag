@@ -7,6 +7,7 @@
 		Eye,
 		EyeOff,
 		Shield,
+		AtSign,
 		Camera,
 		Image,
 		Save,
@@ -19,6 +20,7 @@
 	import { Label } from '$lib/components/ui/label';
 	import { Separator } from '$lib/components/ui/separator';
 	import * as Tabs from '$lib/components/ui/tabs';
+	import * as AlertDialog from '$lib/components/ui/alert-dialog';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 
 	let { form } = $props();
@@ -40,16 +42,64 @@
 	let bannerInput = $state<HTMLInputElement | null>(null);
 	let avatarInput = $state<HTMLInputElement | null>(null);
 
-	function removeImage(type: 'avatar' | 'banner') {
-		if (type === 'avatar') {
+	let confirmRemoveType = $state<'avatar' | 'banner' | null>(null);
+	let confirmRemoveOpen = $state(false);
+
+	let profileName = $state(user?.name ?? '');
+	let profileUsername = $state(user?.username ?? '');
+	let currentPassword = $state('');
+	let newPassword = $state('');
+	let confirmPassword = $state('');
+
+	const profileDirty = $derived(
+		profileName !== (user?.name ?? '') ||
+		profileUsername !== (user?.username ?? '') ||
+		!!avatarPreview ||
+		!!bannerPreview ||
+		removeAvatar ||
+		removeBanner
+	);
+
+	const securityDirty = $derived(
+		currentPassword.length > 0 ||
+		newPassword.length > 0 ||
+		confirmPassword.length > 0
+	);
+
+	function cancelProfileChanges() {
+		profileName = user?.name ?? '';
+		profileUsername = user?.username ?? '';
+		avatarPreview = null;
+		bannerPreview = null;
+		removeAvatar = false;
+		removeBanner = false;
+		if (avatarInput) avatarInput.value = '';
+		if (bannerInput) bannerInput.value = '';
+	}
+
+	function cancelSecurityChanges() {
+		currentPassword = '';
+		newPassword = '';
+		confirmPassword = '';
+	}
+
+	function requestRemoveImage(type: 'avatar' | 'banner') {
+		confirmRemoveType = type;
+		confirmRemoveOpen = true;
+	}
+
+	function confirmRemoveImage() {
+		if (confirmRemoveType === 'avatar') {
 			removeAvatar = true;
 			avatarPreview = null;
 			if (avatarInput) avatarInput.value = '';
-		} else {
+		} else if (confirmRemoveType === 'banner') {
 			removeBanner = true;
 			bannerPreview = null;
 			if (bannerInput) bannerInput.value = '';
 		}
+		confirmRemoveOpen = false;
+		confirmRemoveType = null;
 	}
 
 	function handleAvatarSelect(e: Event) {
@@ -72,6 +122,9 @@
 		return name?.split(' ').slice(0, 2).map((w) => w[0]).join('').toUpperCase() ?? '?';
 	}
 
+	const hasAvatar = $derived(avatarPreview || ((user as any)?.avatar && !removeAvatar));
+	const hasBanner = $derived(bannerPreview || ((user as any)?.banner && !removeBanner));
+
 	$effect(() => {
 		if (form?.tab) activeTab = form.tab as string;
 	});
@@ -85,6 +138,22 @@
 <svelte:head>
 	<title>Settings — Treetag</title>
 </svelte:head>
+
+<!-- Remove image confirmation modal -->
+<AlertDialog.Root bind:open={confirmRemoveOpen}>
+	<AlertDialog.Content>
+		<AlertDialog.Header>
+			<AlertDialog.Title>Remove {confirmRemoveType === 'avatar' ? 'profile picture' : 'banner'}?</AlertDialog.Title>
+			<AlertDialog.Description>
+				This will remove your {confirmRemoveType === 'avatar' ? 'profile picture' : 'banner'} when you save changes. You can upload a new one at any time.
+			</AlertDialog.Description>
+		</AlertDialog.Header>
+		<AlertDialog.Footer>
+			<AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
+			<AlertDialog.Action onclick={confirmRemoveImage} class="bg-red-600 text-white hover:bg-red-700">Remove</AlertDialog.Action>
+		</AlertDialog.Footer>
+	</AlertDialog.Content>
+</AlertDialog.Root>
 
 <div class="mx-auto max-w-7xl px-6 py-10">
 	<h1 class="text-2xl font-bold text-stone-900" style="font-family: 'Playfair Display', serif;">
@@ -118,104 +187,98 @@
 					removeAvatar = false;
 					removeBanner = false;
 					await update();
+					profileName = user?.name ?? '';
+					profileUsername = user?.username ?? '';
 				};
 			}}
 			class="mt-6 space-y-5"
 		>
 			<h3 class="text-[14px] font-semibold text-stone-700">Profile Picture & Banner</h3>
 
-			<!-- Banner preview + upload -->
+			<!-- Banner -->
 			<div>
 				<Label class="mb-1.5 text-[13px] font-medium text-stone-600">Banner</Label>
-				<div class="relative overflow-hidden rounded-xl border border-stone-200 h-40">
-					{#if bannerPreview}
-						<img src={bannerPreview} alt="Banner preview" class="h-full w-full object-cover" />
-					{:else if (user as any).banner && !removeBanner}
-						<img src={(user as any).banner} alt="Current banner" class="h-full w-full object-cover" />
-					{:else}
-						<div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-green-600/90 via-emerald-500/80 to-teal-400/70">
-							<Image size={32} class="text-white/40" />
-						</div>
-					{/if}
-					<input type="file" name="banner" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden" bind:this={bannerInput} onchange={handleBannerSelect} />
-					<div class="absolute bottom-2 right-2">
-						{#if bannerPreview || ((user as any).banner && !removeBanner)}
-							<DropdownMenu.Root>
-								<DropdownMenu.Trigger class="flex cursor-pointer items-center gap-1.5 rounded-lg bg-white/90 px-2.5 py-1.5 text-[12px] font-medium text-stone-600 shadow-sm backdrop-blur-sm hover:bg-white">
-									<Image size={13} /> Change banner
-								</DropdownMenu.Trigger>
-								<DropdownMenu.Content align="end" class="w-40">
-									<DropdownMenu.Item onclick={() => bannerInput?.click()} class="gap-2 text-[12px]">
-										<Image size={12} /> Upload new
-									</DropdownMenu.Item>
-									<DropdownMenu.Item variant="destructive" onclick={() => removeImage('banner')} class="gap-2 text-[12px]">
-										<Trash2 size={12} /> Remove
-									</DropdownMenu.Item>
-								</DropdownMenu.Content>
-							</DropdownMenu.Root>
+				<DropdownMenu.Root>
+					<DropdownMenu.Trigger class="relative block w-full cursor-pointer overflow-hidden rounded-xl border border-stone-200 h-40 transition-all hover:border-green-400 hover:ring-2 hover:ring-green-100 group">
+						{#if bannerPreview}
+							<img src={bannerPreview} alt="Banner preview" class="h-full w-full object-cover" />
+						{:else if (user as any).banner && !removeBanner}
+							<img src={(user as any).banner} alt="Current banner" class="h-full w-full object-cover" />
 						{:else}
-							<label class="flex cursor-pointer items-center gap-1.5 rounded-lg bg-white/90 px-2.5 py-1.5 text-[12px] font-medium text-stone-600 shadow-sm backdrop-blur-sm hover:bg-white">
-								<Image size={13} /> Upload banner
-								<input type="file" name="banner_direct" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden" onchange={(e) => { handleBannerSelect(e); if (bannerInput && (e.target as HTMLInputElement).files?.[0]) { const dt = new DataTransfer(); dt.items.add((e.target as HTMLInputElement).files![0]); bannerInput.files = dt.files; } }} />
-							</label>
+							<div class="flex h-full w-full items-center justify-center bg-gradient-to-br from-green-600/90 via-emerald-500/80 to-teal-400/70">
+								<Image size={32} class="text-white/40" />
+							</div>
 						{/if}
-					</div>
-				</div>
+						<div class="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/30">
+							<div class="flex items-center gap-1.5 rounded-lg bg-white/90 px-3 py-1.5 text-[12px] font-medium text-stone-600 opacity-0 shadow-sm backdrop-blur-sm transition-opacity group-hover:opacity-100">
+								<Camera size={13} /> {hasBanner ? 'Change banner' : 'Upload banner'}
+							</div>
+						</div>
+					</DropdownMenu.Trigger>
+					<DropdownMenu.Content align="center" class="w-44">
+						<DropdownMenu.Item onclick={() => bannerInput?.click()} class="gap-2 text-[12px]">
+							<Image size={12} /> {hasBanner ? 'Upload new' : 'Upload banner'}
+						</DropdownMenu.Item>
+						{#if hasBanner}
+							<DropdownMenu.Item variant="destructive" onclick={() => requestRemoveImage('banner')} class="gap-2 text-[12px]">
+								<Trash2 size={12} /> Remove
+							</DropdownMenu.Item>
+						{/if}
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>
+				<input type="file" name="banner" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden" bind:this={bannerInput} onchange={handleBannerSelect} />
+				<p class="mt-1.5 text-[12px] text-stone-400">JPG, PNG, WebP or GIF. Max 10 MB.</p>
 			</div>
 
-			<!-- Avatar preview + upload -->
+			<!-- Profile Picture -->
 			<div>
 				<Label class="mb-1.5 text-[13px] font-medium text-stone-600">Profile Picture</Label>
 				<div class="flex items-center gap-4">
-					<div class="relative">
-						{#if avatarPreview}
-							<img src={avatarPreview} alt="Avatar preview" class="h-20 w-20 rounded-full border-2 border-stone-200 object-cover" />
-						{:else if (user as any).avatar && !removeAvatar}
-							<img src={(user as any).avatar} alt="Current avatar" class="h-20 w-20 rounded-full border-2 border-stone-200 object-cover" />
-						{:else}
-							<div class="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-green-600 to-emerald-500 text-2xl font-bold text-white">
-								{getInitials(user.name)}
+					<DropdownMenu.Root>
+						<DropdownMenu.Trigger class="relative cursor-pointer rounded-full transition-all hover:ring-2 hover:ring-green-400 hover:ring-offset-2 group">
+							{#if avatarPreview}
+								<img src={avatarPreview} alt="Avatar preview" class="h-20 w-20 rounded-full border-2 border-stone-200 object-cover" />
+							{:else if (user as any).avatar && !removeAvatar}
+								<img src={(user as any).avatar} alt="Current avatar" class="h-20 w-20 rounded-full border-2 border-stone-200 object-cover" />
+							{:else}
+								<div class="flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-green-600 to-emerald-500 text-2xl font-bold text-white">
+									{getInitials(user.name)}
+								</div>
+							{/if}
+							<div class="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 transition-colors group-hover:bg-black/30">
+								<Camera size={16} class="text-white opacity-0 transition-opacity group-hover:opacity-100" />
 							</div>
-						{/if}
-						<input type="file" name="avatar" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden" bind:this={avatarInput} onchange={handleAvatarSelect} />
-						{#if avatarPreview || ((user as any).avatar && !removeAvatar)}
-							<DropdownMenu.Root>
-								<DropdownMenu.Trigger class="absolute -bottom-1 -right-1 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-white shadow-sm border border-stone-200 hover:bg-stone-50">
-									<Camera size={13} class="text-stone-500" />
-								</DropdownMenu.Trigger>
-								<DropdownMenu.Content class="w-40">
-									<DropdownMenu.Item onclick={() => avatarInput?.click()} class="gap-2 text-[12px]">
-										<Camera size={12} /> Upload new
-									</DropdownMenu.Item>
-									<DropdownMenu.Item variant="destructive" onclick={() => removeImage('avatar')} class="gap-2 text-[12px]">
-										<Trash2 size={12} /> Remove
-									</DropdownMenu.Item>
-								</DropdownMenu.Content>
-							</DropdownMenu.Root>
-						{:else}
-							<label class="absolute -bottom-1 -right-1 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-white shadow-sm border border-stone-200 hover:bg-stone-50">
-								<Camera size={13} class="text-stone-500" />
-								<input type="file" name="avatar_direct" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden" onchange={(e) => { handleAvatarSelect(e); if (avatarInput && (e.target as HTMLInputElement).files?.[0]) { const dt = new DataTransfer(); dt.items.add((e.target as HTMLInputElement).files![0]); avatarInput.files = dt.files; } }} />
-							</label>
-						{/if}
-					</div>
+						</DropdownMenu.Trigger>
+						<DropdownMenu.Content class="w-44">
+							<DropdownMenu.Item onclick={() => avatarInput?.click()} class="gap-2 text-[12px]">
+								<Camera size={12} /> {hasAvatar ? 'Upload new' : 'Upload picture'}
+							</DropdownMenu.Item>
+							{#if hasAvatar}
+								<DropdownMenu.Item variant="destructive" onclick={() => requestRemoveImage('avatar')} class="gap-2 text-[12px]">
+									<Trash2 size={12} /> Remove
+								</DropdownMenu.Item>
+							{/if}
+						</DropdownMenu.Content>
+					</DropdownMenu.Root>
 					<div class="text-[12px] text-stone-400">
 						<p>JPG, PNG, WebP or GIF.</p>
 						<p>Max 10 MB.</p>
 					</div>
 				</div>
+				<input type="file" name="avatar" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden" bind:this={avatarInput} onchange={handleAvatarSelect} />
 			</div>
 
 			<Separator class="bg-stone-100" />
 
 			<div>
-				<Label for="name" class="mb-1.5 text-[13px] font-medium text-stone-600">Full Name</Label>
+				<Label for="name" class="mb-1.5 text-[13px] font-medium text-stone-600">Display Name</Label>
 				<Input
 					id="name"
 					name="name"
 					type="text"
 					required
-					value={user.name}
+					maxlength={50}
+					bind:value={profileName}
 					class="h-auto rounded-[10px] border-stone-200 bg-white px-3.5 py-2.5 text-[14px] text-stone-800 focus-visible:border-green-400 focus-visible:ring-green-100"
 				/>
 			</div>
@@ -223,47 +286,35 @@
 			<div>
 				<Label for="username" class="mb-1.5 text-[13px] font-medium text-stone-600">Username</Label>
 				<div class="flex items-center rounded-[10px] border border-stone-200 bg-white transition-colors focus-within:border-green-400 focus-within:ring-2 focus-within:ring-green-100">
-					<span class="pl-3.5 text-[14px] text-stone-400">@</span>
+					<span class="pl-3.5 text-stone-400"><AtSign size={15} /></span>
 					<input
 						id="username"
 						name="username"
 						type="text"
 						required
 						minlength={3}
-						value={user.username}
+						maxlength={20}
+						bind:value={profileUsername}
 						class="w-full rounded-r-[10px] bg-transparent px-1.5 py-2.5 text-[14px] text-stone-800 outline-none"
 					/>
 				</div>
 			</div>
 
-			<div>
-				<Label for="email" class="mb-1.5 text-[13px] font-medium text-stone-600">Email</Label>
-				<Input
-					id="email"
-					type="email"
-					disabled
-					value={user.email}
-					class="h-auto rounded-[10px] border-stone-100 bg-stone-50 px-3.5 py-2.5 text-[14px] text-stone-400"
-				/>
-				<p class="mt-1 text-[12px] text-stone-400">Email cannot be changed here.</p>
-			</div>
-
 			{#if removeAvatar}<input type="hidden" name="removeAvatar" value="true" />{/if}
 			{#if removeBanner}<input type="hidden" name="removeBanner" value="true" />{/if}
 
-			<div class="flex justify-end">
-				<Button
-					type="submit"
-					disabled={uploading}
-					class="rounded-xl bg-green-700 px-7 py-3 text-[13px] font-semibold shadow-lg shadow-green-900/20 hover:bg-green-800 hover:shadow-xl h-auto min-w-[140px]"
-				>
+			<div class="flex justify-end gap-3">
+				<button type="button" onclick={cancelProfileChanges} class="settings-cancel" style:visibility={profileDirty ? 'visible' : 'hidden'}>
+					Cancel
+				</button>
+				<button type="submit" disabled={!profileDirty || uploading} class="settings-submit">
 					{#if uploading}
-						<LoaderCircle size={14} class="animate-spin" />
+						<span class="settings-spinner"><LoaderCircle size={14} /></span>
 					{:else}
 						<Save size={14} />
 					{/if}
-					Save Changes
-				</Button>
+					{uploading ? 'Saving' : 'Save Changes'}
+				</button>
 			</div>
 		</form>
 		{/if}
@@ -271,13 +322,34 @@
 
 		<!-- Security tab -->
 		<Tabs.Content value="security">
+			{#if user}
+			<div class="mt-6 space-y-5">
+				<div>
+					<Label for="email" class="mb-1.5 text-[13px] font-medium text-stone-600">Email</Label>
+					<Input
+						id="email"
+						type="email"
+						disabled
+						value={user.email}
+						class="h-auto rounded-[10px] border-stone-100 bg-stone-50 px-3.5 py-2.5 text-[14px] text-stone-400"
+					/>
+					<p class="mt-1 text-[12px] text-stone-400">Email cannot be changed here.</p>
+				</div>
+			</div>
+
+			<Separator class="my-6 bg-stone-100" />
+			{/if}
+
 			<form method="POST" action="?/changePassword" use:enhance={() => {
 				changingPassword = true;
 				return async ({ update }) => {
 					changingPassword = false;
 					await update();
+					currentPassword = '';
+					newPassword = '';
+					confirmPassword = '';
 				};
-			}} class="mt-6 space-y-5">
+			}} class="space-y-5">
 				<div>
 					<Label for="currentPassword" class="mb-1.5 text-[13px] font-medium text-stone-600">Current Password</Label>
 					<div class="flex items-center rounded-[10px] border border-stone-200 bg-white transition-colors focus-within:border-green-400 focus-within:ring-2 focus-within:ring-green-100">
@@ -285,8 +357,7 @@
 							id="currentPassword"
 							name="currentPassword"
 							type={showCurrentPassword ? 'text' : 'password'}
-							required
-							class="w-full rounded-l-[10px] bg-transparent px-3.5 py-2.5 text-[14px] text-stone-800 outline-none"
+							required						bind:value={currentPassword}							class="w-full rounded-l-[10px] bg-transparent px-3.5 py-2.5 text-[14px] text-stone-800 outline-none"
 						/>
 						<button
 							type="button"
@@ -306,8 +377,7 @@
 							name="newPassword"
 							type={showNewPassword ? 'text' : 'password'}
 							required
-							minlength={8}
-							class="w-full rounded-l-[10px] bg-transparent px-3.5 py-2.5 text-[14px] text-stone-800 outline-none"
+							minlength={8}						bind:value={newPassword}							class="w-full rounded-l-[10px] bg-transparent px-3.5 py-2.5 text-[14px] text-stone-800 outline-none"
 						/>
 						<button
 							type="button"
@@ -327,8 +397,7 @@
 							name="confirmPassword"
 							type={showConfirmPassword ? 'text' : 'password'}
 							required
-							minlength={8}
-							class="w-full rounded-l-[10px] bg-transparent px-3.5 py-2.5 text-[14px] text-stone-800 outline-none"
+							minlength={8}						bind:value={confirmPassword}							class="w-full rounded-l-[10px] bg-transparent px-3.5 py-2.5 text-[14px] text-stone-800 outline-none"
 						/>
 						<button
 							type="button"
@@ -340,21 +409,82 @@
 					</div>
 				</div>
 
-				<div class="flex justify-end">
-					<Button
-						type="submit"
-						disabled={changingPassword}
-						class="rounded-xl bg-green-700 px-7 py-3 text-[13px] font-semibold shadow-lg shadow-green-900/20 hover:bg-green-800 hover:shadow-xl h-auto min-w-[170px]"
-					>
+				<div class="flex justify-end gap-3">
+					<button type="button" onclick={cancelSecurityChanges} class="settings-cancel" style:visibility={securityDirty ? 'visible' : 'hidden'}>
+						Cancel
+					</button>
+					<button type="submit" disabled={!securityDirty || changingPassword} class="settings-submit">
 						{#if changingPassword}
-							<LoaderCircle size={14} class="animate-spin" />
+							<span class="settings-spinner"><LoaderCircle size={14} /></span>
 						{:else}
 							<Lock size={14} />
 						{/if}
-						Change Password
-					</Button>
+						{changingPassword ? 'Changing' : 'Change Password'}
+					</button>
 				</div>
 			</form>
 		</Tabs.Content>
 	</Tabs.Root>
 </div>
+
+<style>
+	.settings-submit {
+		padding: 11px 24px;
+		min-width: 170px;
+		background: linear-gradient(135deg, #16a34a, #15803d);
+		border: none;
+		border-radius: 10px;
+		color: #fff;
+		font-size: 13px;
+		font-weight: 600;
+		cursor: pointer;
+		font-family: 'DM Sans', system-ui, sans-serif;
+		box-shadow: 0 2px 8px rgba(22, 163, 74, 0.15);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		transition: filter 0.2s;
+	}
+
+	.settings-cancel {
+		padding: 11px 24px;
+		background: transparent;
+		border: 1px solid #d6d3d1;
+		border-radius: 10px;
+		color: #57534e;
+		font-size: 13px;
+		font-weight: 600;
+		cursor: pointer;
+		font-family: 'DM Sans', system-ui, sans-serif;
+		transition: background-color 0.2s, border-color 0.2s;
+	}
+
+	.settings-cancel:hover {
+		background-color: #f5f5f4;
+		border-color: #a8a29e;
+	}
+
+	.settings-submit:hover {
+		filter: brightness(1.08);
+	}
+
+	.settings-submit:active {
+		filter: brightness(0.97);
+	}
+
+	.settings-submit:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+		filter: none;
+	}
+
+	.settings-spinner {
+		display: flex;
+		animation: spin 0.8s linear infinite;
+	}
+
+	@keyframes spin {
+		to { transform: rotate(360deg); }
+	}
+</style>

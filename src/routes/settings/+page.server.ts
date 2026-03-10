@@ -27,8 +27,14 @@ export const actions: Actions = {
 		if (!name || !username) {
 			return { error: 'Name and username are required.', tab: 'profile' };
 		}
+		if (name.length > 50) {
+			return { error: 'Display name must be 50 characters or fewer.', tab: 'profile' };
+		}
 		if (username.length < 3) {
 			return { error: 'Username must be at least 3 characters.', tab: 'profile' };
+		}
+		if (username.length > 20) {
+			return { error: 'Username must be 20 characters or fewer.', tab: 'profile' };
 		}
 
 		try {

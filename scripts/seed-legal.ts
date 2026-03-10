@@ -105,7 +105,7 @@ const documents = [
 
 <section>
 <h2>13. Contact</h2>
-<p>If you have any questions about these Terms, please email us at <strong>hello@treetag.app</strong>.</p>
+<p>If you have any questions about these Terms, please email us at <strong>treetag@joshbaker.gg</strong>.</p>
 </section>`
 	},
 	{
@@ -190,7 +190,7 @@ const documents = [
 <li>Object to or restrict certain types of processing</li>
 <li>Data portability — receive your data in a machine-readable format</li>
 </ul>
-<p>To exercise any of these rights, please email us at <strong>hello@treetag.app</strong>.</p>
+<p>To exercise any of these rights, please email us at <strong>treetag@joshbaker.gg</strong>.</p>
 </section>
 
 <section>
@@ -210,7 +210,7 @@ const documents = [
 
 <section>
 <h2>13. Contact</h2>
-<p>If you have questions or concerns about this Privacy Policy or how we handle your data, please email us at <strong>hello@treetag.app</strong>.</p>
+<p>If you have questions or concerns about this Privacy Policy or how we handle your data, please email us at <strong>treetag@joshbaker.gg</strong>.</p>
 </section>`
 	},
 	{
@@ -270,7 +270,7 @@ const documents = [
 
 <section>
 <h2>8. Contact</h2>
-<p>If you have any questions about our use of cookies, please email us at <strong>hello@treetag.app</strong>. For broader information about how we handle your data, see our <a href="/legal/privacy">Privacy Policy</a>.</p>
+<p>If you have any questions about our use of cookies, please email us at <strong>treetag@joshbaker.gg</strong>. For broader information about how we handle your data, see our <a href="/legal/privacy">Privacy Policy</a>.</p>
 </section>`
 	},
 	{
@@ -341,7 +341,7 @@ const documents = [
 
 <section>
 <h2>6. Reporting Violations</h2>
-<p>If you encounter content or behaviour that violates this policy, please report it to us at <strong>hello@treetag.app</strong>. Include as much detail as possible, such as the username involved, the tree profile or observation in question, and a description of the issue. All reports will be reviewed promptly.</p>
+<p>If you encounter content or behaviour that violates this policy, please report it to us at <strong>treetag@joshbaker.gg</strong>. Include as much detail as possible, such as the username involved, the tree profile or observation in question, and a description of the issue. All reports will be reviewed promptly.</p>
 </section>
 
 <section>
@@ -364,7 +364,7 @@ const documents = [
 
 <section>
 <h2>9. Contact</h2>
-<p>If you have any questions about this policy, please email us at <strong>hello@treetag.app</strong>.</p>
+<p>If you have any questions about this policy, please email us at <strong>treetag@joshbaker.gg</strong>.</p>
 </section>`
 	},
 	{
@@ -413,7 +413,7 @@ const documents = [
 <h2>5. Feedback</h2>
 <p>We welcome feedback on the accessibility of Treetag. If you experience any difficulty using the Service, or have suggestions for improvement, please contact us:</p>
 <ul>
-<li><strong>Email:</strong> hello@treetag.app</li>
+<li><strong>Email:</strong> treetag@joshbaker.gg</li>
 </ul>
 <p>We will do our best to respond within 5 working days and to address any issues raised.</p>
 </section>
