@@ -43,12 +43,14 @@ export const load: PageServerLoad = async ({ request }) => {
 	const isAdmin = (session.user as any).role === 'admin';
 
 	await connectDB();
-	const [speciesSuggestions, plantedBySuggestions] = await Promise.all([
+	const [speciesSuggestions, plantedBySuggestions, tagSuggestions, featureSuggestions] = await Promise.all([
 		getLovSuggestions('species', 200),
-		getLovSuggestions('plantedBy', 100)
+		getLovSuggestions('plantedBy', 100),
+		getLovSuggestions('tag', 200),
+		getLovSuggestions('feature', 200)
 	]);
 
-	return { isAdmin, speciesSuggestions, plantedBySuggestions };
+	return { isAdmin, speciesSuggestions, plantedBySuggestions, tagSuggestions, featureSuggestions };
 };
 
 export const actions: Actions = {
@@ -60,12 +62,24 @@ export const actions: Actions = {
 
 		const form = await request.formData();
 		const name = form.get('name')?.toString().trim();
-		const species = form.get('species')?.toString().trim();
+		const species = form
+			.get('species')
+			?.toString()
+			.trim()
+			.replace(/[^A-Za-z0-9 ]/g, '')
+			.replace(/\s+/g, ' ')
+			.trim();
 		const estimatedAge = form.get('estimatedAge')?.toString().trim();
 		const height = form.get('height')?.toString().trim();
 		const trunkDiameter = form.get('trunkDiameter')?.toString().trim();
 		const plantedDate = form.get('plantedDate')?.toString().trim();
-		const plantedBy = form.get('plantedBy')?.toString().trim();
+		const plantedBy = form
+			.get('plantedBy')
+			?.toString()
+			.trim()
+			.replace(/[^A-Za-z0-9 ]/g, '')
+			.replace(/\s+/g, ' ')
+			.trim();
 		const postcode = form.get('postcode')?.toString().trim();
 		const latitude = form.get('latitude')?.toString().trim();
 		const longitude = form.get('longitude')?.toString().trim();
@@ -113,12 +127,22 @@ export const actions: Actions = {
 		// Coordinate validation
 		const lat = parseFloat(latitude);
 		const lng = parseFloat(longitude);
-		if (isNaN(lat) || isNaN(lng)) return fail(400, { error: 'Invalid coordinates.', field: 'latitude' });
-		if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return fail(400, { error: 'Coordinates out of range.', field: 'latitude' });
+		if (isNaN(lat)) return fail(400, { error: 'Latitude must be a number.', field: 'latitude' });
+		if (isNaN(lng)) return fail(400, { error: 'Longitude must be a number.', field: 'longitude' });
+		if (lat < -90 || lat > 90) return fail(400, { error: 'Latitude must be between -90 and 90.', field: 'latitude' });
+		if (lng < -180 || lng > 180) return fail(400, { error: 'Longitude must be between -180 and 180.', field: 'longitude' });
 
 		// Tags & features limits
-		const parsedTags = tags ? tags.split(',').map((t) => t.trim()).filter(Boolean).slice(0, 20) : [];
+		const parsedTags = tags
+			? [...new Set(tags.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean))].slice(0, 20)
+			: [];
 		const parsedFeatures = features ? features.split(',').map((f) => f.trim()).filter(Boolean).slice(0, 20) : [];
+		if (parsedTags.some((t) => !/^[a-z0-9]+$/.test(t))) {
+			return fail(400, { error: 'Tags can only contain lowercase letters and numbers (a-z, 0-9).', field: 'tags' });
+		}
+		if (parsedFeatures.some((f) => !/^[A-Za-z0-9]+$/.test(f))) {
+			return fail(400, { error: 'Features can only contain letters and numbers (A-Z, a-z, 0-9).', field: 'features' });
+		}
 		if (parsedTags.some((t) => t.length > 50)) return fail(400, { error: 'Each tag must be 50 characters or less.', field: 'tags' });
 		if (parsedFeatures.some((f) => f.length > 100)) return fail(400, { error: 'Each feature must be 100 characters or less.', field: 'features' });
 
@@ -145,6 +169,8 @@ export const actions: Actions = {
 		} while (attempts < 10);
 
 		if (attempts >= 10) return fail(500, { error: 'Failed to generate unique QR code.' });
+
+		let redirectId: string | null = null;
 
 		// Upload photos
 		const photoIds: string[] = [];
@@ -194,16 +220,24 @@ export const actions: Actions = {
 			}
 
 			if ((tree as any).status === 'approved') {
-				await recordApprovedTreeLovValues({
-					species: tree.species,
-					plantedBy: tree.plantedBy ?? null
-				});
+				try {
+					await recordApprovedTreeLovValues({
+						species: tree.species,
+						plantedBy: tree.plantedBy ?? null,
+						tags: tree.tags ?? [],
+						features: tree.features ?? []
+					});
+				} catch (lovErr) {
+					console.error('Failed to record LOV values for approved tree', lovErr);
+				}
 			}
 
-			throw redirect(303, `/trees/${tree._id}`);
+			redirectId = tree._id.toString();
 		} catch (e: any) {
 			if (e.status === 303) throw e;
 			return fail(500, { error: e.message ?? 'Failed to register tree.' });
 		}
+
+		throw redirect(303, `/trees/${redirectId}`);
 	}
 };

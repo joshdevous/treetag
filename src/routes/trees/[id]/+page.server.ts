@@ -5,7 +5,7 @@ import { TreeModel } from '$lib/server/db/models/tree';
 import { ObservationModel } from '$lib/server/db/models/observation';
 import { PhotoModel } from '$lib/server/db/models/photo';
 import { recordApprovedTreeLovValues } from '$lib/server/lov';
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
 import { DATABASE_URL, APP_URL } from '$env/static/private';
 import type { PageServerLoad, Actions } from './$types';
 
@@ -42,13 +42,14 @@ export const load: PageServerLoad = async ({ params, request }) => {
 		...observations.map((o) => o.userId)
 	].filter(Boolean))];
 
-	const users = userIds.length
+	const userObjectIds = userIds.filter((id) => ObjectId.isValid(id)).map((id) => new ObjectId(id));
+	const users = userObjectIds.length
 		? await db.collection('user')
-			.find({ id: { $in: userIds } })
-			.project({ id: 1, name: 1, username: 1, avatar: 1 })
+			.find({ _id: { $in: userObjectIds } })
+			.project({ name: 1, username: 1, avatar: 1 })
 			.toArray()
 		: [];
-	const userMap = new Map(users.map((u) => [u.id, { name: u.name as string, username: u.username as string, avatar: (u.avatar as string) ?? null }]));
+	const userMap = new Map(users.map((u) => [u._id.toString(), { name: u.name as string, username: u.username as string, avatar: (u.avatar as string) ?? null }]));
 
 	const isLoggedIn = !!session?.user;
 
@@ -123,7 +124,9 @@ export const actions: Actions = {
 		await tree.save();
 		await recordApprovedTreeLovValues({
 			species: tree.species,
-			plantedBy: tree.plantedBy ?? null
+			plantedBy: tree.plantedBy ?? null,
+			tags: tree.tags ?? [],
+			features: tree.features ?? []
 		});
 
 		return { success: 'Tree approved and now visible to the public.' };

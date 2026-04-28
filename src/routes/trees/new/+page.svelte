@@ -13,22 +13,19 @@
 		Crosshair,
 		ArrowLeft,
 		CircleDashed,
-		ChevronsUpDown,
-		Check,
 		ChevronUp,
 		ChevronDown
 	} from 'lucide-svelte';
 	import { parseDate } from '@internationalized/date';
 	import { toast } from 'svelte-sonner';
-	import { cn } from '$lib/utils';
 	import { Button } from '$lib/components/ui/button';
 	import { Badge } from '$lib/components/ui/badge';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
 	import { Separator } from '$lib/components/ui/separator';
-	import * as Popover from '$lib/components/ui/popover';
-	import * as Command from '$lib/components/ui/command';
 	import DateInput from '$lib/components/DateInput.svelte';
+	import InputCombobox from '$lib/components/combobox/InputCombobox.svelte';
+	import LovCombobox from '$lib/components/combobox/LovCombobox.svelte';
 
 	let { data, form } = $props();
 
@@ -60,14 +57,6 @@
 
 	let addressOptions = $state<LookupAddressOption[]>([]);
 
-	// Species combobox state
-	let speciesOpen = $state(false);
-	let speciesTriggerRef = $state<HTMLButtonElement | null>(null);
-	let plantedByOpen = $state(false);
-	let plantedByTriggerRef = $state<HTMLButtonElement | null>(null);
-	let addressOpen = $state(false);
-	let addressTriggerRef = $state<HTMLButtonElement | null>(null);
-
 	// Tag chips
 	let tags = $state<string[]>([]);
 	let tagInput = $state('');
@@ -83,81 +72,55 @@
 	const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 	const availableSpecies = $derived(data.speciesSuggestions ?? []);
 	const plantedBySuggestions = $derived(data.plantedBySuggestions ?? []);
+	const tagSuggestions = $derived(data.tagSuggestions ?? []);
+	const featureSuggestions = $derived(data.featureSuggestions ?? []);
 
-	const speciesSuggestions = $derived.by(() => {
-		const current = species.trim().toLowerCase();
-		if (!current) return availableSpecies.slice(0, 60);
-		return availableSpecies.filter((s) => s.toLowerCase().includes(current)).slice(0, 60);
+	const addressComboboxOptions = $derived.by(() =>
+		addressOptions.map((option) => ({
+			value: option.shortAddress,
+			label: option.shortAddress,
+			search: option.shortAddress
+		}))
+	);
+
+	const tagMatches = $derived.by(() => {
+		const current = tagInput.trim().toLowerCase();
+		const selected = new Set(tags.map((t) => t.toLowerCase()));
+		const seen = new Set<string>();
+		const normalized = tagSuggestions
+			.map((s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, ''))
+			.filter((s: string) => s.length > 0 && !selected.has(s));
+		return normalized
+			.filter((s: string) => {
+				if (seen.has(s)) return false;
+				seen.add(s);
+				return !current || s.includes(current);
+			})
+			.slice(0, 8);
 	});
 
-	const plantedByMatches = $derived.by(() => {
-		const current = plantedBy.trim().toLowerCase();
-		if (!current) return plantedBySuggestions.slice(0, 60);
-		return plantedBySuggestions.filter((s: string) => s.toLowerCase().includes(current)).slice(0, 60);
+	const featureMatches = $derived.by(() => {
+		const current = featureInput.trim().toLowerCase();
+		const selected = new Set(features.map((f) => f.toLowerCase()));
+		const seen = new Set<string>();
+		return featureSuggestions
+			.map((s: string) => s.replace(/[^A-Za-z0-9]/g, ''))
+			.filter((s: string) => s.length > 0 && !selected.has(s.toLowerCase()))
+			.filter((s: string) => {
+				const key = s.toLowerCase();
+				if (seen.has(key)) return false;
+				seen.add(key);
+				return !current || key.includes(current);
+			})
+			.slice(0, 8);
 	});
-
-	const addressMatches = $derived.by(() => {
-		const current = address.trim().toLowerCase();
-		if (!current) return addressOptions.slice(0, 60);
-		return addressOptions.filter((o) => o.shortAddress.toLowerCase().includes(current)).slice(0, 60);
-	});
-
-	function closeSpeciesPopover() {
-		speciesOpen = false;
-		speciesTriggerRef?.focus();
-	}
-
-	function closePlantedByPopover() {
-		plantedByOpen = false;
-		plantedByTriggerRef?.focus();
-	}
-
-	function closeAddressPopover() {
-		addressOpen = false;
-		addressTriggerRef?.focus();
-	}
-
-	function handleSpeciesInputKeydown(event: KeyboardEvent) {
-		if (event.key !== 'Enter') return;
-
-		const typed = species.trim();
-		if (!typed) return;
-
-		// Keep custom free-text species only when there are no filtered suggestions.
-		if (speciesSuggestions.length === 0) {
-			event.preventDefault();
-			event.stopPropagation();
-			closeSpeciesPopover();
-		}
-	}
-
-	function handlePlantedByInputKeydown(event: KeyboardEvent) {
-		if (event.key !== 'Enter') return;
-
-		const typed = plantedBy.trim();
-		if (!typed) return;
-
-		if (plantedByMatches.length === 0) {
-			event.preventDefault();
-			event.stopPropagation();
-			closePlantedByPopover();
-		}
-	}
-
-	function handleAddressInputKeydown(event: KeyboardEvent) {
-		if (event.key !== 'Enter') return;
-		const typed = address.trim();
-		if (!typed) return;
-
-		if (addressMatches.length === 0) {
-			event.preventDefault();
-			event.stopPropagation();
-			closeAddressPopover();
-		}
-	}
 
 	function addChip(kind: 'tag' | 'feature') {
-		const value = (kind === 'tag' ? tagInput : featureInput).trim().replace(/,$/, '');
+		const rawValue = (kind === 'tag' ? tagInput : featureInput).trim().replace(/,$/, '');
+		const value =
+			kind === 'tag'
+				? rawValue.toLowerCase().replace(/[^a-z0-9]/g, '')
+				: rawValue.replace(/[^A-Za-z0-9]/g, '');
 		if (!value) return;
 
 		const list = kind === 'tag' ? tags : features;
@@ -181,11 +144,17 @@
 		else features = features.filter((_, i) => i !== index);
 	}
 
-	function handleChipKeydown(event: KeyboardEvent, kind: 'tag' | 'feature') {
-		if (event.key === 'Enter' || event.key === ',') {
-			event.preventDefault();
-			addChip(kind);
+	function addSuggestedChip(kind: 'tag' | 'feature', value: string) {
+		if (kind === 'tag') {
+			tagInput = value;
+		} else {
+			featureInput = value;
 		}
+		addChip(kind);
+	}
+
+	function applySelectedAddress(value: string) {
+		address = value;
 	}
 
 	function stepNumber(field: 'estimatedAge' | 'height' | 'trunkDiameter', direction: 1 | -1) {
@@ -245,11 +214,6 @@
 	function handlePostcodeInput() {
 		clearTimeout(postcodeDebounce);
 		postcodeDebounce = setTimeout(() => lookupAddresses(false), 450);
-	}
-
-	function applySelectedAddress(option: LookupAddressOption) {
-		address = option.shortAddress;
-		closeAddressPopover();
 	}
 
 	function buildLocalAddressFromNominatim(addr: Record<string, unknown>): string {
@@ -321,7 +285,7 @@
 		latitude = '51.8841';
 		longitude = '-2.0498';
 		tags = ['heritage', 'mature', 'shady', 'landmark'];
-		features = ['wide canopy', 'buttress roots', 'carved initials', 'bird nesting site'];
+		features = ['WideCanopy', 'ButtressRoots', 'CarvedInitials', 'BirdNestingSite'];
 		void lookupAddresses(false);
 	}
 
@@ -472,49 +436,15 @@
 				</div>
 				<div>
 					<Label class="mb-1.5 text-[13px] font-medium text-stone-600">Species *</Label>
-					<Popover.Root bind:open={speciesOpen}>
-						<Popover.Trigger bind:ref={speciesTriggerRef}>
-							{#snippet child({ props })}
-								<Button
-									{...props}
-									variant="outline"
-									role="combobox"
-									aria-expanded={speciesOpen}
-									class={cn(
-										'h-auto w-full justify-between rounded-[10px] border-stone-200 bg-white px-3.5 py-2.5 text-[14px] font-normal hover:bg-white focus-visible:border-green-400 focus-visible:ring-2 focus-visible:ring-green-100',
-										speciesOpen && 'border-green-400 ring-2 ring-green-100',
-										species ? 'text-stone-800' : 'text-stone-300',
-										fieldError('species') && 'border-red-400 focus-visible:border-red-400 focus-visible:ring-red-100'
-									)}
-								>
-									{species || 'Select species...'}
-									<ChevronsUpDown size={14} class="opacity-50" />
-								</Button>
-							{/snippet}
-						</Popover.Trigger>
-						<Popover.Content class="w-(--bits-popover-anchor-width) p-0" align="start">
-							<Command.Root>
-								<Command.Input bind:value={species} onkeydown={handleSpeciesInputKeydown} placeholder="Search species or type your own..." />
-								<Command.List>
-									<Command.Empty>No species found. Keep typing to use custom text.</Command.Empty>
-									<Command.Group>
-										{#each speciesSuggestions as suggestion (suggestion)}
-											<Command.Item
-												value={suggestion}
-												onSelect={() => {
-													species = suggestion;
-													closeSpeciesPopover();
-												}}
-											>
-												<Check class={cn('me-2 size-4', species !== suggestion && 'text-transparent')} />
-												{suggestion}
-											</Command.Item>
-										{/each}
-									</Command.Group>
-								</Command.List>
-							</Command.Root>
-						</Popover.Content>
-					</Popover.Root>
+					<LovCombobox
+						id="species"
+						bind:value={species}
+						suggestions={availableSpecies}
+						sanitizeMode="alnum-space"
+						placeholder="Select species..."
+						searchPlaceholder="Search species or type your own..."
+						emptyMessage="No species found. Keep typing to use custom text."
+					/>
 					{#if fieldError('species')}
 						<p class="mt-1 text-[12px] text-red-500">{fieldError('species')}</p>
 					{/if}
@@ -624,45 +554,15 @@
 				</div>
 				<div>
 					<Label for="plantedBy" class="mb-1.5 text-[13px] font-medium text-stone-600">Planted By</Label>
-					<Popover.Root bind:open={plantedByOpen}>
-						<Popover.Trigger bind:ref={plantedByTriggerRef}>
-							{#snippet child({ props })}
-								<Button
-									{...props}
-									id="plantedBy"
-									variant="outline"
-									role="combobox"
-									aria-expanded={plantedByOpen}
-									class="h-auto w-full justify-between rounded-[10px] border-stone-200 bg-white px-3.5 py-2.5 text-[14px] font-normal hover:bg-white focus-visible:border-green-400 focus-visible:ring-2 focus-visible:ring-green-100 {plantedByOpen ? 'border-green-400 ring-2 ring-green-100' : ''} {plantedBy ? 'text-stone-800' : 'text-stone-300'}"
-								>
-									{plantedBy || 'Select or type planter...'}
-									<ChevronsUpDown size={14} class="opacity-50" />
-								</Button>
-							{/snippet}
-						</Popover.Trigger>
-						<Popover.Content class="w-(--bits-popover-anchor-width) p-0" align="start">
-							<Command.Root>
-								<Command.Input bind:value={plantedBy} onkeydown={handlePlantedByInputKeydown} placeholder="Search or type who planted it..." />
-								<Command.List>
-									<Command.Empty>No matches found. Keep typing to use custom text.</Command.Empty>
-									<Command.Group>
-										{#each plantedByMatches as suggestion (suggestion)}
-											<Command.Item
-												value={suggestion}
-												onSelect={() => {
-													plantedBy = suggestion;
-													closePlantedByPopover();
-												}}
-											>
-												<Check class={cn('me-2 size-4', plantedBy !== suggestion && 'text-transparent')} />
-												{suggestion}
-											</Command.Item>
-										{/each}
-									</Command.Group>
-								</Command.List>
-							</Command.Root>
-						</Popover.Content>
-					</Popover.Root>
+					<LovCombobox
+						id="plantedBy"
+						bind:value={plantedBy}
+						suggestions={plantedBySuggestions}
+						sanitizeMode="alnum-space"
+						placeholder="Select or type planter..."
+						searchPlaceholder="Search or type who planted it..."
+						emptyMessage="No matches found. Keep typing to use custom text."
+					/>
 				</div>
 			</div>
 		</section>
@@ -718,47 +618,16 @@
 
 			<div>
 				<Label for="address" class="mb-1.5 text-[13px] font-medium text-stone-600">Address / Location Name</Label>
-				<Popover.Root bind:open={addressOpen}>
-					<Popover.Trigger bind:ref={addressTriggerRef}>
-						{#snippet child({ props })}
-							<Button
-								{...props}
-								id="address"
-								variant="outline"
-								role="combobox"
-								aria-expanded={addressOpen}
-								class="h-auto w-full justify-between rounded-[10px] border-stone-200 bg-white px-3.5 py-2.5 text-[14px] font-normal hover:bg-white focus-visible:border-green-400 focus-visible:ring-2 focus-visible:ring-green-100 {addressOpen ? 'border-green-400 ring-2 ring-green-100' : ''} {address ? 'text-stone-800' : 'text-stone-300'}"
-							>
-								{address || 'Start typing or choose from postcode suggestions'}
-								{#if isFetchingAddresses}
-									<LoaderCircle size={14} class="animate-spin opacity-60" />
-								{:else}
-									<ChevronsUpDown size={14} class="opacity-50" />
-								{/if}
-							</Button>
-						{/snippet}
-					</Popover.Trigger>
-					<Popover.Content class="w-(--bits-popover-anchor-width) p-0" align="start">
-						<Command.Root>
-							<Command.Input bind:value={address} onkeydown={handleAddressInputKeydown} placeholder="Search or type location name..." />
-							<Command.List>
-								<Command.Empty>No matches found. Keep typing to use custom text.</Command.Empty>
-								<Command.Group>
-									{#each addressMatches as option (option.id)}
-										<Command.Item
-											value={option.shortAddress}
-											onSelect={() => {
-												applySelectedAddress(option);
-											}}
-										>
-											<span class="truncate text-[12px] font-medium text-stone-700">{option.shortAddress}</span>
-										</Command.Item>
-									{/each}
-								</Command.Group>
-							</Command.List>
-						</Command.Root>
-					</Popover.Content>
-				</Popover.Root>
+				<InputCombobox
+					id="address"
+					bind:value={address}
+					options={addressComboboxOptions}
+					loading={isFetchingAddresses}
+					placeholder="Start typing or choose from postcode suggestions"
+					searchPlaceholder="Search or type location name..."
+					emptyMessage="No matches found. Keep typing to use custom text."
+					onSelectValue={applySelectedAddress}
+				/>
 				{#if fieldError('address')}
 					<p class="mt-1 text-[12px] text-red-500">{fieldError('address')}</p>
 				{/if}
@@ -772,7 +641,9 @@
 						name="latitude"
 						type="text"
 						required
-						pattern="-?\\d+\\.?\\d*"
+						inputmode="decimal"
+						pattern="-?(90(\.0+)?|[1-8]?\d(\.\d+)?)"
+						title="A decimal number between -90 and 90 (e.g. 51.8826)"
 						placeholder="e.g. 51.8826"
 						bind:value={latitude}
 						class="h-auto rounded-[10px] border-stone-200 bg-white px-3.5 py-2.5 text-[14px] text-stone-800 placeholder:text-stone-300 focus-visible:border-green-400 focus-visible:ring-green-100 {fieldError('latitude') ? 'border-red-400 focus-visible:border-red-400 focus-visible:ring-red-100' : ''}"
@@ -788,11 +659,16 @@
 						name="longitude"
 						type="text"
 						required
-						pattern="-?\\d+\\.?\\d*"
+						inputmode="decimal"
+						pattern="-?(180(\.0+)?|1[0-7]\d(\.\d+)?|\d\d?(\.\d+)?)"
+						title="A decimal number between -180 and 180 (e.g. -2.0536)"
 						placeholder="e.g. -2.0536"
 						bind:value={longitude}
-						class="h-auto rounded-[10px] border-stone-200 bg-white px-3.5 py-2.5 text-[14px] text-stone-800 placeholder:text-stone-300 focus-visible:border-green-400 focus-visible:ring-green-100 {fieldError('latitude') ? 'border-red-400 focus-visible:border-red-400 focus-visible:ring-red-100' : ''}"
+						class="h-auto rounded-[10px] border-stone-200 bg-white px-3.5 py-2.5 text-[14px] text-stone-800 placeholder:text-stone-300 focus-visible:border-green-400 focus-visible:ring-green-100 {fieldError('longitude') ? 'border-red-400 focus-visible:border-red-400 focus-visible:ring-red-100' : ''}"
 					/>
+					{#if fieldError('longitude')}
+						<p class="mt-1 text-[12px] text-red-500">{fieldError('longitude')}</p>
+					{/if}
 				</div>
 			</div>
 		</section>
@@ -808,13 +684,16 @@
 
 			<div>
 				<Label for="tagInput" class="mb-1.5 text-[13px] font-medium text-stone-600">Tags</Label>
-				<Input
+				<LovCombobox
 					id="tagInput"
-					type="text"
-					placeholder="Type a tag and press Enter"
 					bind:value={tagInput}
-					onkeydown={(e) => handleChipKeydown(e, 'tag')}
-					class="h-auto rounded-[10px] border-stone-200 bg-white px-3.5 py-2.5 text-[14px] text-stone-800 placeholder:text-stone-300 focus-visible:border-green-400 focus-visible:ring-green-100"
+					suggestions={tagMatches}
+					sanitizeMode="lower-alnum"
+					placeholder="Search tags or type your own..."
+					searchPlaceholder="Search tags or type your own..."
+					emptyMessage="No tag matches. Press Enter to add custom text."
+					onSelectValue={(value) => addSuggestedChip('tag', value)}
+					onCommitValue={(value) => addSuggestedChip('tag', value)}
 				/>
 				{#if tags.length > 0}
 					<div class="mt-2 flex flex-wrap gap-1.5">
@@ -836,13 +715,16 @@
 
 			<div>
 				<Label for="featureInput" class="mb-1.5 text-[13px] font-medium text-stone-600">Features</Label>
-				<Input
+				<LovCombobox
 					id="featureInput"
-					type="text"
-					placeholder="Type a feature and press Enter"
 					bind:value={featureInput}
-					onkeydown={(e) => handleChipKeydown(e, 'feature')}
-					class="h-auto rounded-[10px] border-stone-200 bg-white px-3.5 py-2.5 text-[14px] text-stone-800 placeholder:text-stone-300 focus-visible:border-green-400 focus-visible:ring-green-100"
+					suggestions={featureMatches}
+					sanitizeMode="alnum"
+					placeholder="Search features or type your own..."
+					searchPlaceholder="Search features or type your own..."
+					emptyMessage="No feature matches. Press Enter to add custom text."
+					onSelectValue={(value) => addSuggestedChip('feature', value)}
+					onCommitValue={(value) => addSuggestedChip('feature', value)}
 				/>
 				{#if features.length > 0}
 					<div class="mt-2 flex flex-wrap gap-1.5">

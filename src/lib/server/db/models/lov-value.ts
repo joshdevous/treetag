@@ -5,7 +5,7 @@ const lovValueSchema = new Schema(
 		type: {
 			type: String,
 			required: true,
-			enum: ['species', 'plantedBy']
+			enum: ['species', 'plantedBy', 'tag', 'feature']
 		},
 		value: { type: String, required: true },
 		normalized: { type: String, required: true },
