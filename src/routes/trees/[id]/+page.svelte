@@ -335,7 +335,7 @@
 									</div>
 									<div class="flex-1 min-w-0">
 										<div class="flex items-center gap-2 flex-wrap">
-											<a href="/@{obs.user.username}" class="text-[13px] font-semibold text-stone-800 hover:text-green-600 transition-colors">
+											<a href="/@{obs.user.username}" class="block max-w-[180px] truncate text-[13px] font-semibold text-stone-800 hover:text-green-600 transition-colors">
 												{obs.user.name}
 											</a>
 											<span class="text-[12px] text-stone-400">{getObservationLabel(obs.type)}</span>
@@ -446,22 +446,33 @@
 				<h3 class="mb-3 text-[14px] font-bold text-stone-800">Adoption</h3>
 				{#if tree.adoptedBy}
 					<div class="flex items-center gap-3">
-						<div class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-green-600 to-emerald-500 text-xs font-bold text-white overflow-hidden">
+						<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-green-600 to-emerald-500 text-xs font-bold text-white overflow-hidden">
 							{#if tree.adoptedBy.avatar}
 								<img src={tree.adoptedBy.avatar} alt={tree.adoptedBy.name} class="h-full w-full object-cover" />
 							{:else}
 								{getInitials(tree.adoptedBy.name)}
 							{/if}
 						</div>
-						<div>
-							<a href="/@{tree.adoptedBy.username}" class="text-[13px] font-semibold text-stone-800 hover:text-green-600 transition-colors">
+						<div class="min-w-0 flex-1">
+							<a href="/@{tree.adoptedBy.username}" class="block truncate text-[13px] font-semibold text-stone-800 hover:text-green-600 transition-colors">
 								{tree.adoptedBy.name}
 							</a>
-							<p class="text-[11px] text-stone-400">
+							<p class="truncate text-[11px] text-stone-400">
 								Adopted {formatDate(tree.adoptedAt)}
 							</p>
 						</div>
 					</div>
+					{#if data.userId === tree.adoptedBy.id || data.isAdmin}
+						<form method="POST" action="?/unadopt" class="mt-3" use:enhance>
+							<Button
+								type="submit"
+								variant="outline"
+								class="w-full gap-2 rounded-[10px] border-stone-200 text-[12px] font-medium text-stone-500 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+							>
+								Release Tree
+							</Button>
+						</form>
+					{/if}
 				{:else}
 					<div class="text-center">
 						<Heart size={24} class="mx-auto text-stone-300" />
@@ -507,10 +518,10 @@
 					</div>
 					{#if tree.createdBy}
 						<Separator class="bg-stone-50" />
-						<div class="flex justify-between">
-							<dt class="text-stone-400">Added by</dt>
-							<dd>
-								<a href="/@{tree.createdBy.username}" class="font-medium text-green-600 hover:text-green-700 transition-colors">
+						<div class="flex justify-between gap-3">
+							<dt class="shrink-0 text-stone-400">Added by</dt>
+							<dd class="min-w-0">
+								<a href="/@{tree.createdBy.username}" class="block max-w-[180px] truncate font-medium text-green-600 hover:text-green-700 transition-colors">
 									{tree.createdBy.name}
 								</a>
 							</dd>
