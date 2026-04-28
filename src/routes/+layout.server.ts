@@ -44,9 +44,11 @@ export const load: LayoutServerLoad = async ({ request }) => {
 		} catch {}
 	}
 
+	const role = (session?.user as any)?.role ?? null;
+
 	return {
 		session: session?.session ?? null,
-		user: session?.user ? { ...session.user, avatar, banner } : null,
+		user: session?.user ? { ...session.user, avatar, banner, role } : null,
 		levels
 	};
 };
