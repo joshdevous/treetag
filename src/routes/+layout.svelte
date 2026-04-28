@@ -4,7 +4,7 @@
 	import { signOut } from '$lib/auth-client';
 	import { goto, invalidateAll } from '$app/navigation';
 	import { slide } from 'svelte/transition';
-	import { TreePine, User, Settings, LogOut, ChevronDown, Menu, X } from 'lucide-svelte';
+	import { TreePine, User, Settings, LogOut, ChevronDown, Menu, X, Shield } from 'lucide-svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { Separator } from '$lib/components/ui/separator';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
@@ -16,7 +16,9 @@
 
 	const navLinks = [
 		{ href: '/', label: 'Home' },
-		{ href: '/trees', label: 'Explore' }
+		{ href: '/trees', label: 'Explore' },
+		{ href: '/leaderboard', label: 'Leaderboard' },
+		{ href: '/faq', label: 'FAQ' }
 	];
 
 	function getInitials(name: string) {
@@ -105,7 +107,7 @@
 										{getInitials(data.user.name)}
 									{/if}
 								</div>
-								<span class="hidden text-[13px] font-medium text-stone-700 sm:block"
+								<span class="hidden max-w-[140px] truncate text-[13px] font-medium text-stone-700 sm:block"
 									>{data.user.name}</span
 								>
 								<ChevronDown
@@ -118,8 +120,8 @@
 
 							<DropdownMenu.Content align="end" class="w-52 rounded-xl shadow-lg shadow-stone-200/60">
 								<DropdownMenu.Label class="px-3.5 pb-2.5 pt-2">
-									<p class="text-[13px] font-medium text-stone-800">{data.user.name}</p>
-									<p class="text-[12px] font-normal text-stone-400">@{data.user.username}</p>
+									<p class="truncate text-[13px] font-medium text-stone-800">{data.user.name}</p>
+									<p class="truncate text-[12px] font-normal text-stone-400">@{data.user.username}</p>
 								</DropdownMenu.Label>
 								<DropdownMenu.Separator />
 								<DropdownMenu.Item onclick={() => goto(`/@${data.user?.username}`)} class="gap-2.5 px-3.5 py-2 text-[13px] text-stone-600">
@@ -130,6 +132,13 @@
 									<Settings size={15} class="text-stone-400" />
 									Settings
 								</DropdownMenu.Item>
+								{#if (data.user as any).role === 'admin'}
+									<DropdownMenu.Separator />
+									<DropdownMenu.Item onclick={() => goto('/admin')} class="gap-2.5 px-3.5 py-2 text-[13px] text-stone-600">
+										<Shield size={15} class="text-stone-400" />
+										Admin
+									</DropdownMenu.Item>
+								{/if}
 								<DropdownMenu.Separator />
 								<DropdownMenu.Item variant="destructive" onclick={handleSignOut} class="gap-2.5 px-3.5 py-2 text-[13px]">
 									<LogOut size={15} />

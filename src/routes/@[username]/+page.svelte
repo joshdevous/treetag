@@ -143,10 +143,10 @@
 			</div>
 
 			<!-- Name + edit button row (below avatar, no overlap) -->
-			<div class="mt-3 flex items-start justify-between">
-				<div>
-					<h1 class="text-xl font-bold text-stone-900">{pUser.name}</h1>
-					<p class="text-[13px] text-stone-400">@{pUser.username}</p>
+			<div class="mt-3 flex items-start justify-between gap-3">
+				<div class="min-w-0 flex-1">
+					<h1 class="truncate text-xl font-bold text-stone-900">{pUser.name}</h1>
+					<p class="truncate text-[13px] text-stone-400">@{pUser.username}</p>
 				</div>
 				{#if data.isOwnProfile}
 					<Button variant="outline" href="/settings" class="h-auto rounded-lg border-stone-200 px-3 py-1.5 text-[12px] font-medium text-stone-500 hover:bg-stone-50 hover:text-stone-700">

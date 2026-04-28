@@ -12,7 +12,8 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"migrate:lov:species": "bun scripts/migrate-lov-species.ts",
-		"seed:lov:mock": "bun scripts/seed-lov-mock.ts"
+		"seed:lov:mock": "bun scripts/seed-lov-mock.ts",
+		"seed:faqs": "bun scripts/seed-faqs.ts"
 	},
 	"devDependencies": {
 		"@internationalized/date": "^3.12.0",

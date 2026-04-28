@@ -84,12 +84,35 @@
 
 	const activityMeta: Record<string, { color: string; verb: string }> = {
 		tag: { color: '#16a34a', verb: 'tagged' },
-		wildlife: { color: '#2563eb', verb: 'spotted wildlife in' },
+		wildlife: { color: '#2563eb', verb: 'spotted wildlife at' },
 		photo: { color: '#db2777', verb: 'photographed' },
-		health_check: { color: '#7c3aed', verb: 'health check on' },
+		health_check: { color: '#7c3aed', verb: 'checked health of' },
 		disease: { color: '#ea580c', verb: 'reported disease on' },
-		note: { color: '#6b7280', verb: 'noted on' }
+		note: { color: '#6b7280', verb: 'left a note on' }
 	};
+
+	const healthStatusLabel: Record<string, string> = {
+		healthy: 'Healthy',
+		concern: 'Concern',
+		diseased: 'Diseased',
+		dead: 'Dead'
+	};
+
+	function activityDetail(item: {
+		type: string;
+		content: string | null;
+		wildlifeSpecies: string | null;
+		healthStatus: string | null;
+	}): string | null {
+		if (item.type === 'wildlife' && item.wildlifeSpecies) return item.wildlifeSpecies;
+		if (item.type === 'health_check' && item.healthStatus)
+			return healthStatusLabel[item.healthStatus] ?? item.healthStatus;
+		if (item.content && item.content.trim().length > 0) {
+			const trimmed = item.content.trim();
+			return trimmed.length > 80 ? trimmed.slice(0, 80) + '…' : trimmed;
+		}
+		return null;
+	}
 
 	function timeAgo(iso: string): string {
 		const ms = Date.now() - new Date(iso).getTime();
@@ -298,8 +321,9 @@
 		{#if data.recentTrees.length > 0}
 			<div class="flex gap-3 overflow-x-auto pb-2" style="scroll-snap-type: x mandatory;">
 				{#each data.recentTrees as tree, i}
-					<div
-						class="min-w-[220px] max-w-[220px] shrink-0 cursor-pointer overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md"
+					<a
+						href="/trees/{tree.id}"
+						class="block min-w-[220px] max-w-[220px] shrink-0 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:border-green-300 hover:shadow-md"
 						style="scroll-snap-align: start; animation: fade-slide-up 0.5s cubic-bezier(0.16,1,0.3,1) {0.6 + i * 0.08}s both;"
 					>
 						<div
@@ -334,7 +358,7 @@
 								{/each}
 							</div>
 						</div>
-					</div>
+					</a>
 				{/each}
 			</div>
 		{:else}
@@ -385,20 +409,23 @@
 	style="animation: fade-slide-up 0.8s cubic-bezier(0.16,1,0.3,1) 0.7s both"
 >
 	<div class="mx-auto max-w-7xl">
-		<div class="mb-4 flex items-center gap-2">
+		<div class="mb-4">
 			<h2 class="text-xl font-bold tracking-tight text-stone-900">Community Feed</h2>
-			<span
-				class="h-1.5 w-1.5 rounded-full bg-green-600"
-				style="box-shadow: 0 0 6px rgba(22,163,74,0.4); animation: pulse-dot 2s infinite;"
-			></span>
+			<p class="text-xs text-stone-400">Latest observations from guardians across Charlton Kings</p>
 		</div>
 
 		{#if data.activity.length > 0}
 			<div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
 				{#each data.activity as item, i}
 					{@const meta = activityMeta[item.type] ?? { color: '#6b7280', verb: 'interacted with' }}
-					<div
-						class="flex items-start gap-3 rounded-xl border border-stone-100 bg-white p-3 shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-shadow hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
+					{@const detail = activityDetail(item)}
+					{@const Wrapper = item.treeId ? 'a' : 'div'}
+					<svelte:element
+						this={Wrapper}
+						href={item.treeId ? `/trees/${item.treeId}` : undefined}
+						class="flex items-start gap-3 rounded-xl border border-stone-100 bg-white p-3 shadow-[0_1px_2px_rgba(0,0,0,0.03)] transition-all {item.treeId
+							? 'hover:-translate-y-0.5 hover:border-stone-200 hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]'
+							: ''}"
 						style="animation: fade-slide-up 0.5s cubic-bezier(0.16,1,0.3,1) {0.8 + i * 0.06}s both;"
 					>
 						<div
@@ -413,6 +440,9 @@
 								{' '}<span class="text-stone-600">{meta.verb}</span>
 								{' '}<span class="font-semibold text-stone-900">{item.treeName}</span>
 							</div>
+							{#if detail}
+								<div class="mt-0.5 truncate text-[12px] text-stone-500">{detail}</div>
+							{/if}
 							<div class="mt-0.5 text-[11px] text-stone-400">{timeAgo(item.createdAt)}</div>
 						</div>
 						<div class="mt-0.5 shrink-0 opacity-40" style="color: {meta.color};">
@@ -430,7 +460,7 @@
 								<Leaf size={14} />
 							{/if}
 						</div>
-					</div>
+					</svelte:element>
 				{/each}
 			</div>
 		{:else}
@@ -537,6 +567,13 @@
 					</div>
 				</details>
 			{/each}
+		</div>
+
+		<div class="mt-6 text-center">
+			<a href="/faq" class="inline-flex items-center gap-1 text-[13px] font-semibold text-green-600 transition-colors hover:text-green-700">
+				Browse all FAQs
+				<ChevronRight size={14} />
+			</a>
 		</div>
 	</div>
 </section>

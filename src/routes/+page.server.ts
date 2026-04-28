@@ -2,7 +2,7 @@ import type { PageServerLoad } from './$types';
 import { connectDB } from '$lib/server/db';
 import { TreeModel } from '$lib/server/db/models/tree';
 import { ObservationModel } from '$lib/server/db/models/observation';
-import { MongoClient } from 'mongodb';
+import { MongoClient, ObjectId } from 'mongodb';
 import { DATABASE_URL } from '$env/static/private';
 
 const client = new MongoClient(DATABASE_URL);
@@ -28,15 +28,18 @@ export const load: PageServerLoad = async () => {
 			TreeModel.find(approvedFilter, { name: 1, species: 1, location: 1, adoptedBy: 1 }).lean()
 		]);
 
-	const userIds = [...new Set(recentActivity.map((a) => a.userId))];
-	const users = userIds.length
+	const userIds = [...new Set(recentActivity.map((a) => a.userId).filter(Boolean))];
+	const userObjectIds = userIds
+		.filter((id): id is string => typeof id === 'string' && ObjectId.isValid(id))
+		.map((id) => new ObjectId(id));
+	const users = userObjectIds.length
 		? await db
 				.collection('user')
-				.find({ id: { $in: userIds } })
-				.project({ id: 1, name: 1 })
+				.find({ _id: { $in: userObjectIds } })
+				.project({ _id: 1, name: 1 })
 				.toArray()
 		: [];
-	const userMap = new Map(users.map((u) => [u.id, u.name as string]));
+	const userMap = new Map(users.map((u) => [String(u._id), u.name as string]));
 
 	return {
 		stats: {
@@ -65,12 +68,16 @@ export const load: PageServerLoad = async () => {
 				adopted: t.adoptedBy != null
 			})),
 		activity: recentActivity.map((a) => {
-			const tree = a.tree as unknown as { name: string } | null;
+			const tree = a.tree as unknown as { _id: unknown; name: string } | null;
 			return {
 				id: String(a._id),
 				userName: userMap.get(a.userId) ?? 'Unknown',
 				type: a.type as string,
+				treeId: tree?._id ? String(tree._id) : null,
 				treeName: tree?.name ?? 'Unknown Tree',
+				content: (a.content as string | undefined) ?? null,
+				wildlifeSpecies: (a as any).wildlife?.species ?? null,
+				healthStatus: (a as any).healthStatus ?? null,
 				createdAt: new Date((a as any).createdAt ?? Date.now()).toISOString()
 			};
 		})
